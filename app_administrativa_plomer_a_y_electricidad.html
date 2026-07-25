@@ -83,6 +83,23 @@
         th { background-color: #f1f5f9; color: #475569; font-weight: 600; padding: 0.75rem 1rem; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
         td { padding: 0.75rem 1rem; border-top: 1px solid #e2e8f0; color: #334155; font-size: 0.875rem; white-space: nowrap; }
         tr:hover { background-color: #f8fafc; }
+
+        /* ===== Documento imprimible de cotización ===== */
+        #cot-print-area { display: none; }
+        .cotdoc { color: #1e293b; }
+        .cotdoc table { width: 100%; border-collapse: collapse; }
+        .cotdoc th, .cotdoc td { white-space: normal; border: none; }
+        @media print {
+            @page { size: A4; margin: 14mm; }
+            body { background: #fff !important; }
+            body * { visibility: hidden !important; }
+            #cot-print-area, #cot-print-area * { visibility: visible !important; }
+            #cot-print-area {
+                display: block !important; position: absolute; left: 0; top: 0; width: 100%;
+                -webkit-print-color-adjust: exact; print-color-adjust: exact;
+            }
+            .no-print { display: none !important; }
+        }
     </style>
 </head>
 <body class="text-gray-800 antialiased h-screen flex overflow-hidden bg-slate-50">
@@ -365,67 +382,126 @@
 
             <!-- VISTA: COTIZADOR -->
             <div id="view-cotizador" class="view-section">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold text-slate-800">Generar Cotización</h2>
+                <div class="flex flex-col sm:flex-row justify-between sm:items-center mb-6 gap-2">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-800">Generar Cotización</h2>
+                        <p class="text-slate-500 text-sm">Folio <span id="cot-folio" class="font-semibold text-slate-700">—</span></p>
+                    </div>
                 </div>
-                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 md:p-6">
-                    <form id="form-cotizador" onsubmit="event.preventDefault(); generarCotizacion();">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <form id="form-cotizador" onsubmit="event.preventDefault(); guardarCotizacion();">
+
+                    <!-- Datos del cliente y de la cotización -->
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 md:p-6 mb-5">
+                        <h3 class="font-bold text-slate-700 mb-4 flex items-center"><i class="fa-solid fa-user-tie text-brand-500 mr-2"></i> Datos del cliente</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-sm font-medium text-slate-700 mb-1">Cliente</label>
-                                <input type="text" id="cot-cliente" required placeholder="Nombre del cliente" class="w-full rounded-md border-slate-300 border p-2 text-sm focus:ring-brand-500 focus:border-brand-500">
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Cliente / Empresa <span class="text-red-500">*</span></label>
+                                <input type="text" id="cot-cliente" required placeholder="Ej. Constructora ABC" class="w-full rounded-md border-slate-300 border p-2 text-sm focus:ring-brand-500 focus:border-brand-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Atención a</label>
+                                <input type="text" id="cot-atencion" placeholder="Ej. Ing. Ramírez" class="w-full rounded-md border-slate-300 border p-2 text-sm focus:ring-brand-500 focus:border-brand-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Proyecto / Obra</label>
+                                <input type="text" id="cot-proyecto" placeholder="Ej. Edificio Corporativo Torre Norte" class="w-full rounded-md border-slate-300 border p-2 text-sm focus:ring-brand-500 focus:border-brand-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Ubicación</label>
+                                <input type="text" id="cot-ubicacion" placeholder="Ej. Escobedo, N.L." class="w-full rounded-md border-slate-300 border p-2 text-sm focus:ring-brand-500 focus:border-brand-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Teléfono</label>
+                                <input type="tel" id="cot-telefono" placeholder="Opcional" class="w-full rounded-md border-slate-300 border p-2 text-sm focus:ring-brand-500 focus:border-brand-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Correo</label>
+                                <input type="email" id="cot-correo" placeholder="Opcional" class="w-full rounded-md border-slate-300 border p-2 text-sm focus:ring-brand-500 focus:border-brand-500">
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-slate-700 mb-1">Fecha</label>
-                                <input type="date" id="cot-fecha" required class="w-full rounded-md border-slate-300 border p-2 text-sm focus:ring-brand-500 focus:border-brand-500">
+                                <input type="date" id="cot-fecha" required onchange="actualizarValidez()" class="w-full rounded-md border-slate-300 border p-2 text-sm focus:ring-brand-500 focus:border-brand-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Válida hasta</label>
+                                <input type="date" id="cot-validez" class="w-full rounded-md border-slate-300 border p-2 text-sm bg-slate-50 focus:ring-brand-500 focus:border-brand-500">
                             </div>
                         </div>
-                        
-                        <div class="mb-4 flex justify-between items-end border-b pb-2">
-                            <h3 class="font-bold text-slate-700">Conceptos / Materiales</h3>
-                            <button type="button" onclick="agregarFilaCotizacion()" class="text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded border border-slate-300 flex items-center transition">
-                                <i class="fa-solid fa-plus mr-1"></i> Agregar Fila
+                    </div>
+
+                    <!-- Conceptos -->
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 md:p-6 mb-5">
+                        <div class="mb-4 flex justify-between items-center border-b border-slate-100 pb-3">
+                            <h3 class="font-bold text-slate-700 flex items-center"><i class="fa-solid fa-list-check text-brand-500 mr-2"></i> Conceptos</h3>
+                            <button type="button" onclick="agregarFilaCotizacion()" class="text-sm bg-brand-50 hover:bg-brand-100 text-brand-700 px-3 py-1.5 rounded-lg border border-brand-200 flex items-center transition font-medium">
+                                <i class="fa-solid fa-plus mr-1"></i> Agregar concepto
                             </button>
                         </div>
 
-                        <div class="overflow-x-auto mb-6">
-                            <table class="w-full min-w-[500px]">
+                        <div class="overflow-x-auto">
+                            <table class="w-full min-w-[720px]">
                                 <thead>
-                                    <tr class="text-left text-xs text-slate-500 uppercase">
-                                        <th class="pb-2 w-1/2">Descripción</th>
-                                        <th class="pb-2 w-1/6">Cant.</th>
-                                        <th class="pb-2 w-1/6">P. Unitario</th>
-                                        <th class="pb-2 w-1/6 text-right">Subtotal</th>
+                                    <tr class="text-left text-xs text-slate-500 uppercase border-b border-slate-100">
+                                        <th class="pb-2 pr-2 w-[42%]">Concepto</th>
+                                        <th class="pb-2 pr-2 w-[10%]">Unidad</th>
+                                        <th class="pb-2 pr-2 w-[12%]">Cant.</th>
+                                        <th class="pb-2 pr-2 w-[16%]">P. Unitario</th>
+                                        <th class="pb-2 pr-2 w-[16%] text-right">Importe</th>
+                                        <th class="pb-2 w-[4%]"></th>
                                     </tr>
                                 </thead>
-                                <tbody id="cot-filas" class="space-y-2">
-                                    <!-- Fila base -->
-                                    <tr class="cot-fila border-b border-slate-100">
-                                        <td class="py-2 pr-2"><input type="text" class="w-full p-1.5 border rounded text-sm desc" placeholder="Ej. Instalación tubería" required></td>
-                                        <td class="py-2 pr-2"><input type="number" class="w-full p-1.5 border rounded text-sm cant" value="1" min="1" onchange="calcCotRow(this)" required></td>
-                                        <td class="py-2 pr-2"><input type="number" class="w-full p-1.5 border rounded text-sm pu" value="0" min="0" onchange="calcCotRow(this)" required></td>
-                                        <td class="py-2 text-right font-medium text-slate-700 subtotal">$0.00</td>
-                                    </tr>
-                                </tbody>
+                                <tbody id="cot-filas"></tbody>
                             </table>
                         </div>
+                    </div>
 
-                        <div class="flex justify-end mb-6">
-                            <div class="w-full md:w-1/3 bg-slate-50 p-4 rounded-lg border border-slate-200">
-                                <div class="flex justify-between font-bold text-lg text-slate-800">
-                                    <span>Total:</span>
-                                    <span id="cot-total-display">$0.00</span>
+                    <!-- Totales y condiciones -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
+                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 md:p-6">
+                            <h3 class="font-bold text-slate-700 mb-3 flex items-center"><i class="fa-solid fa-file-signature text-brand-500 mr-2"></i> Condiciones</h3>
+                            <div class="space-y-3">
+                                <div>
+                                    <label class="block text-xs font-medium text-slate-500 mb-1">Forma de pago</label>
+                                    <input type="text" id="cot-pago" class="w-full rounded-md border-slate-300 border p-2 text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-slate-500 mb-1">Tiempo de entrega</label>
+                                    <input type="text" id="cot-entrega" class="w-full rounded-md border-slate-300 border p-2 text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-slate-500 mb-1">Garantía</label>
+                                    <input type="text" id="cot-garantia" class="w-full rounded-md border-slate-300 border p-2 text-sm">
                                 </div>
                             </div>
                         </div>
 
-                        <div class="text-right border-t border-slate-200 pt-4">
-                            <button type="submit" class="bg-brand-600 hover:bg-brand-700 text-white px-6 py-2.5 rounded-lg font-medium transition shadow-sm w-full md:w-auto">
-                                Guardar Cotización
-                            </button>
+                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 md:p-6 flex flex-col justify-center">
+                            <div class="space-y-2">
+                                <div class="flex justify-between text-slate-600">
+                                    <span>Subtotal</span>
+                                    <span id="cot-subtotal-display" class="font-medium">$0.00</span>
+                                </div>
+                                <div class="flex justify-between text-slate-600">
+                                    <span>IVA (<span id="cot-iva-pct">16</span>%)</span>
+                                    <span id="cot-iva-display" class="font-medium">$0.00</span>
+                                </div>
+                                <div class="flex justify-between text-xl font-bold text-slate-800 border-t border-slate-200 pt-3 mt-1">
+                                    <span>Total</span>
+                                    <span id="cot-total-display" class="text-brand-600">$0.00</span>
+                                </div>
+                            </div>
                         </div>
-                    </form>
-                </div>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row justify-end gap-3">
+                        <button type="button" onclick="previsualizarCotizacion()" class="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 px-6 py-2.5 rounded-lg font-medium transition shadow-sm flex items-center justify-center">
+                            <i class="fa-solid fa-file-pdf mr-2 text-red-500"></i> Vista previa / PDF
+                        </button>
+                        <button type="submit" class="bg-brand-600 hover:bg-brand-700 text-white px-6 py-2.5 rounded-lg font-medium transition shadow-sm flex items-center justify-center">
+                            <i class="fa-solid fa-floppy-disk mr-2"></i> Guardar Cotización
+                        </button>
+                    </div>
+                </form>
             </div>
 
             <!-- VISTA: HISTORIAL COTIZACIONES -->
@@ -652,6 +728,28 @@
             </div>
         </div>
     </div>
+
+    <!-- Modal Vista Previa / PDF de Cotización -->
+    <div class="modal opacity-0 pointer-events-none fixed w-full h-full top-0 left-0 flex items-center justify-center z-50 p-2 sm:p-4" id="modal-cotpdf">
+        <div class="absolute w-full h-full bg-slate-900 opacity-60 backdrop-blur-sm no-print" onclick="closeModal('modal-cotpdf')"></div>
+        <div class="bg-white w-full max-w-3xl mx-auto rounded-xl shadow-2xl z-50 overflow-hidden flex flex-col max-h-full">
+            <div class="px-5 py-3 border-b border-slate-100 flex justify-between items-center bg-slate-50 no-print">
+                <h3 class="text-base font-bold text-slate-800"><i class="fa-solid fa-file-pdf text-red-500 mr-2"></i>Vista previa de cotización</h3>
+                <div class="flex items-center gap-2">
+                    <button onclick="imprimirCotizacion()" class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center">
+                        <i class="fa-solid fa-download mr-2"></i> Descargar PDF
+                    </button>
+                    <button class="text-slate-400 hover:text-slate-700 px-2" onclick="closeModal('modal-cotpdf')"><i class="fa-solid fa-xmark text-xl"></i></button>
+                </div>
+            </div>
+            <div class="p-4 sm:p-6 overflow-y-auto bg-slate-100">
+                <div id="cotpdf-preview" class="bg-white shadow-sm mx-auto" style="max-width:760px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Área imprimible (solo visible al imprimir) -->
+    <div id="cot-print-area"></div>
 
     <!-- Contenedor Toast -->
     <div id="toast-container" class="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 flex flex-col gap-2"></div>
@@ -1128,83 +1226,272 @@
             renderObras(); // Renderizará basándose en el filtro actual
         }
 
+        /* ============ COTIZADOR PROFESIONAL ============ */
+
+        // Genera el siguiente folio: COT-<año>-<consecutivo>
+        function siguienteFolioCot() {
+            const year = new Date().getFullYear();
+            let max = 0;
+            appData.cotizaciones.forEach(c => {
+                const m = /COT-(\d{4})-(\d+)/.exec(c.id || '');
+                if (m && parseInt(m[1]) === year) max = Math.max(max, parseInt(m[2]));
+            });
+            return `COT-${year}-${String(max + 1).padStart(3, '0')}`;
+        }
+
+        function fmtFechaISO(iso) {
+            if (!iso) return '';
+            const d = new Date(iso + 'T00:00:00');
+            return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
+        }
+
+        function actualizarValidez() {
+            const fechaStr = document.getElementById('cot-fecha').value;
+            if (!fechaStr) return;
+            const d = new Date(fechaStr + 'T00:00:00');
+            d.setDate(d.getDate() + (appData.empresa.validezDias || 15));
+            document.getElementById('cot-validez').value = d.toISOString().slice(0, 10);
+        }
+
         function initCotizador() {
-            document.getElementById('cot-fecha').valueAsDate = new Date();
-            // Resetear filas
-            document.getElementById('cot-filas').innerHTML = `
-                <tr class="cot-fila border-b border-slate-100">
-                    <td class="py-2 pr-2"><input type="text" class="w-full p-1.5 border border-slate-300 rounded text-sm desc" placeholder="Ej. Instalación tubería" required></td>
-                    <td class="py-2 pr-2"><input type="number" class="w-full p-1.5 border border-slate-300 rounded text-sm cant" value="1" min="1" onchange="calcCotRow(this)" onkeyup="calcCotRow(this)" required></td>
-                    <td class="py-2 pr-2"><input type="number" class="w-full p-1.5 border border-slate-300 rounded text-sm pu" value="0" min="0" onchange="calcCotRow(this)" onkeyup="calcCotRow(this)" required></td>
-                    <td class="py-2 text-right font-medium text-slate-700 subtotal">$0.00</td>
-                </tr>`;
-            document.getElementById('cot-total-display').innerText = '$0.00';
-            document.getElementById('cot-cliente').value = '';
+            const hoy = new Date();
+            document.getElementById('cot-fecha').valueAsDate = hoy;
+            actualizarValidez();
+            document.getElementById('cot-folio').innerText = siguienteFolioCot();
+            document.getElementById('cot-iva-pct').innerText = Math.round((appData.empresa.iva || 0.16) * 100);
+            // Condiciones por defecto desde la empresa
+            document.getElementById('cot-pago').value = appData.empresa.condicionesPago || '';
+            document.getElementById('cot-entrega').value = appData.empresa.tiempoEntrega || '';
+            document.getElementById('cot-garantia').value = appData.empresa.garantia || '';
+            // Limpiar campos de cliente
+            ['cot-cliente','cot-atencion','cot-proyecto','cot-ubicacion','cot-telefono','cot-correo'].forEach(id => document.getElementById(id).value = '');
+            // Reiniciar conceptos con una fila
+            document.getElementById('cot-filas').innerHTML = '';
+            agregarFilaCotizacion();
+            calcCotTotal();
+        }
+
+        // Opciones <option> del catálogo de precios de venta
+        function opcionesPreciosVenta() {
+            let opts = '<option value="">— Seleccionar del catálogo —</option>';
+            appData.preciosVenta.forEach((p, i) => {
+                opts += `<option value="${i}">${p.id} · ${p.concepto} (${fmtMoneda.format(p.precio)}/${p.uni})</option>`;
+            });
+            opts += '<option value="libre">✏️ Concepto libre…</option>';
+            return opts;
         }
 
         function agregarFilaCotizacion() {
             const tbody = document.getElementById('cot-filas');
             const tr = document.createElement('tr');
-            tr.className = 'cot-fila border-b border-slate-100';
+            tr.className = 'cot-fila align-top';
             tr.innerHTML = `
-                <td class="py-2 pr-2"><input type="text" class="w-full p-1.5 border border-slate-300 rounded text-sm desc" placeholder="Descripción" required></td>
-                <td class="py-2 pr-2"><input type="number" class="w-full p-1.5 border border-slate-300 rounded text-sm cant" value="1" min="1" onchange="calcCotRow(this)" onkeyup="calcCotRow(this)" required></td>
-                <td class="py-2 pr-2"><input type="number" class="w-full p-1.5 border border-slate-300 rounded text-sm pu" value="0" min="0" onchange="calcCotRow(this)" onkeyup="calcCotRow(this)" required></td>
-                <td class="py-2 text-right font-medium text-slate-700 subtotal flex justify-between items-center h-full">
-                    <span class="val">$0.00</span>
-                    <button type="button" onclick="this.closest('tr').remove(); calcCotTotal();" class="text-red-400 hover:text-red-600 ml-2"><i class="fa-solid fa-trash-can"></i></button>
-                </td>`;
+                <td class="py-2 pr-2">
+                    <select class="w-full p-1.5 border border-slate-300 rounded text-sm bg-white concepto-sel" onchange="onConceptoChange(this)"></select>
+                    <input type="text" class="w-full p-1.5 border border-slate-300 rounded text-sm desc mt-1 hidden" placeholder="Descripción del concepto">
+                </td>
+                <td class="py-2 pr-2"><input type="text" class="w-full p-1.5 border border-slate-300 rounded text-sm uni text-center" placeholder="und"></td>
+                <td class="py-2 pr-2"><input type="number" class="w-full p-1.5 border border-slate-300 rounded text-sm cant" value="1" min="0" step="any" oninput="calcCotRow(this)" required></td>
+                <td class="py-2 pr-2"><input type="number" class="w-full p-1.5 border border-slate-300 rounded text-sm pu" value="0" min="0" step="any" oninput="calcCotRow(this)" required></td>
+                <td class="py-2 pr-2 text-right font-medium text-slate-700"><span class="importe">$0.00</span></td>
+                <td class="py-2 text-center"><button type="button" onclick="this.closest('tr').remove(); calcCotTotal();" class="text-red-400 hover:text-red-600" title="Quitar"><i class="fa-solid fa-trash-can"></i></button></td>`;
             tbody.appendChild(tr);
+            tr.querySelector('.concepto-sel').innerHTML = opcionesPreciosVenta();
+        }
+
+        function onConceptoChange(sel) {
+            const tr = sel.closest('tr');
+            const descInput = tr.querySelector('.desc');
+            const uni = tr.querySelector('.uni');
+            const pu = tr.querySelector('.pu');
+            if (sel.value === 'libre') {
+                descInput.classList.remove('hidden');
+                descInput.value = '';
+                uni.value = '';
+                pu.value = 0;
+                descInput.focus();
+            } else if (sel.value === '') {
+                descInput.classList.add('hidden');
+                uni.value = ''; pu.value = 0;
+            } else {
+                const p = appData.preciosVenta[parseInt(sel.value)];
+                descInput.classList.add('hidden');
+                descInput.value = p.concepto;
+                uni.value = p.uni;
+                pu.value = p.precio;
+            }
+            calcCotRow(sel);
         }
 
         function calcCotRow(inputElem) {
             const tr = inputElem.closest('tr');
             const cant = parseFloat(tr.querySelector('.cant').value) || 0;
             const pu = parseFloat(tr.querySelector('.pu').value) || 0;
-            const sub = cant * pu;
-            const subElem = tr.querySelector('.subtotal .val') || tr.querySelector('.subtotal');
-            subElem.innerText = fmtMoneda.format(sub);
-            tr.dataset.subtotal = sub; // Guardar valor numérico
+            const imp = cant * pu;
+            tr.querySelector('.importe').innerText = fmtMoneda.format(imp);
+            tr.dataset.importe = imp;
             calcCotTotal();
         }
 
         function calcCotTotal() {
-            let total = 0;
-            document.querySelectorAll('.cot-fila').forEach(tr => {
-                total += parseFloat(tr.dataset.subtotal) || 0;
-            });
+            let subtotal = 0;
+            document.querySelectorAll('.cot-fila').forEach(tr => { subtotal += parseFloat(tr.dataset.importe) || 0; });
+            const iva = subtotal * (appData.empresa.iva || 0.16);
+            const total = subtotal + iva;
+            document.getElementById('cot-subtotal-display').innerText = fmtMoneda.format(subtotal);
+            document.getElementById('cot-iva-display').innerText = fmtMoneda.format(iva);
             document.getElementById('cot-total-display').innerText = fmtMoneda.format(total);
-            return total;
+            return { subtotal, iva, total };
         }
 
-        function generarCotizacion() {
-            const cliente = document.getElementById('cot-cliente').value;
-            const fechaStr = document.getElementById('cot-fecha').value;
-            // format date
-            const dateObj = new Date(fechaStr + 'T00:00:00');
-            const fecha = dateObj.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
-            
-            const total = calcCotTotal();
-            if(total <= 0) {
-                mostrarToast('El total debe ser mayor a 0', true);
-                return;
-            }
-
+        // Lee el formulario y arma el objeto cotización
+        function leerCotizacion() {
             const desglose = [];
             document.querySelectorAll('.cot-fila').forEach(tr => {
-                const desc = tr.querySelector('.desc').value;
+                const sel = tr.querySelector('.concepto-sel');
+                let desc = '';
+                if (sel.value === 'libre' || sel.value === '') desc = tr.querySelector('.desc').value.trim();
+                else desc = appData.preciosVenta[parseInt(sel.value)].concepto;
+                const uni = tr.querySelector('.uni').value.trim();
                 const cant = parseFloat(tr.querySelector('.cant').value) || 0;
                 const pu = parseFloat(tr.querySelector('.pu').value) || 0;
-                if(desc && cant > 0) desglose.push({ desc, cant, pu });
+                if (desc && cant > 0) desglose.push({ desc, uni, cant, pu });
+            });
+            const { subtotal, iva, total } = calcCotTotal();
+            const fechaStr = document.getElementById('cot-fecha').value;
+            const validezStr = document.getElementById('cot-validez').value;
+            return {
+                id: document.getElementById('cot-folio').innerText,
+                cliente: document.getElementById('cot-cliente').value.trim(),
+                atencion: document.getElementById('cot-atencion').value.trim(),
+                proyecto: document.getElementById('cot-proyecto').value.trim(),
+                ubicacion: document.getElementById('cot-ubicacion').value.trim(),
+                telefono: document.getElementById('cot-telefono').value.trim(),
+                correo: document.getElementById('cot-correo').value.trim(),
+                fecha: fmtFechaISO(fechaStr),
+                validez: fmtFechaISO(validezStr),
+                pago: document.getElementById('cot-pago').value.trim(),
+                entrega: document.getElementById('cot-entrega').value.trim(),
+                garantia: document.getElementById('cot-garantia').value.trim(),
+                subtotal, iva, total, desglose,
+                estado: 'Pendiente'
+            };
+        }
+
+        // Construye el HTML del documento (membrete + tabla + totales)
+        function construirDocCotizacion(cot) {
+            const e = appData.empresa;
+            const contacto = [
+                e.telefono ? `Tel. ${e.telefono}` : '',
+                e.email || '',
+                e.rfc ? `RFC ${e.rfc}` : ''
+            ].filter(Boolean).join('  ·  ');
+
+            let filas = '';
+            cot.desglose.forEach((it, i) => {
+                filas += `
+                <tr style="background:${i % 2 ? '#f8fafc' : '#ffffff'}">
+                    <td style="padding:8px 10px;font-size:12px;color:#334155;">${it.desc}</td>
+                    <td style="padding:8px 10px;font-size:12px;color:#64748b;text-align:center;">${it.uni || '—'}</td>
+                    <td style="padding:8px 10px;font-size:12px;color:#334155;text-align:center;">${it.cant}</td>
+                    <td style="padding:8px 10px;font-size:12px;color:#334155;text-align:right;">${fmtMoneda.format(it.pu)}</td>
+                    <td style="padding:8px 10px;font-size:12px;color:#0f172a;text-align:right;font-weight:600;">${fmtMoneda.format(it.cant * it.pu)}</td>
+                </tr>`;
             });
 
-            const nuevaCot = {
-                id: 'COT-00' + (appData.cotizaciones.length + 1),
-                cliente, fecha, total, desglose
-            };
+            return `
+            <div class="cotdoc" style="padding:34px 38px;font-family:'Inter',Arial,sans-serif;">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid rgb(var(--brand-600));padding-bottom:16px;">
+                    <div style="display:flex;gap:14px;align-items:center;">
+                        <img src="HHM_PROYECTOS_LOGO.jpeg" alt="HHM" style="width:64px;height:64px;object-fit:contain;">
+                        <div>
+                            <div style="font-size:22px;font-weight:800;color:#0f172a;letter-spacing:.5px;">HHM Proyectos</div>
+                            <div style="font-size:12px;color:#64748b;">${e.giro || ''}</div>
+                            <div style="font-size:11px;color:#94a3b8;">${e.direccion || ''}</div>
+                            ${contacto ? `<div style="font-size:11px;color:#94a3b8;">${contacto}</div>` : ''}
+                        </div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="font-size:20px;font-weight:800;color:rgb(var(--brand-600));letter-spacing:1px;">COTIZACIÓN</div>
+                        <div style="font-size:12px;color:#334155;margin-top:4px;"><b>${cot.id}</b></div>
+                        <div style="font-size:11px;color:#64748b;">Fecha: ${cot.fecha}</div>
+                        <div style="font-size:11px;color:#64748b;">Válida hasta: ${cot.validez || '—'}</div>
+                    </div>
+                </div>
 
-            appData.cotizaciones.unshift(nuevaCot);
-            mostrarToast('Cotización guardada exitosamente');
+                <div style="display:flex;justify-content:space-between;gap:20px;margin-top:18px;">
+                    <div style="font-size:12px;color:#334155;line-height:1.6;">
+                        <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">Cliente</div>
+                        <div style="font-weight:700;color:#0f172a;">${cot.cliente || '—'}</div>
+                        ${cot.atencion ? `<div>Atención: ${cot.atencion}</div>` : ''}
+                        ${cot.telefono ? `<div>Tel. ${cot.telefono}</div>` : ''}
+                        ${cot.correo ? `<div>${cot.correo}</div>` : ''}
+                    </div>
+                    <div style="font-size:12px;color:#334155;line-height:1.6;text-align:right;">
+                        <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">Proyecto</div>
+                        <div style="font-weight:600;">${cot.proyecto || '—'}</div>
+                        ${cot.ubicacion ? `<div>${cot.ubicacion}</div>` : ''}
+                    </div>
+                </div>
+
+                <table style="width:100%;border-collapse:collapse;margin-top:18px;border:1px solid #e2e8f0;">
+                    <thead>
+                        <tr style="background:rgb(var(--brand-600));">
+                            <th style="padding:9px 10px;font-size:10px;color:#fff;text-align:left;text-transform:uppercase;letter-spacing:.5px;">Concepto</th>
+                            <th style="padding:9px 10px;font-size:10px;color:#fff;text-align:center;text-transform:uppercase;letter-spacing:.5px;">Unidad</th>
+                            <th style="padding:9px 10px;font-size:10px;color:#fff;text-align:center;text-transform:uppercase;letter-spacing:.5px;">Cant.</th>
+                            <th style="padding:9px 10px;font-size:10px;color:#fff;text-align:right;text-transform:uppercase;letter-spacing:.5px;">P. Unit.</th>
+                            <th style="padding:9px 10px;font-size:10px;color:#fff;text-align:right;text-transform:uppercase;letter-spacing:.5px;">Importe</th>
+                        </tr>
+                    </thead>
+                    <tbody>${filas}</tbody>
+                </table>
+
+                <div style="display:flex;justify-content:flex-end;margin-top:14px;">
+                    <table style="width:260px;border-collapse:collapse;">
+                        <tr><td style="padding:4px 8px;font-size:12px;color:#64748b;">Subtotal</td><td style="padding:4px 8px;font-size:12px;color:#334155;text-align:right;">${fmtMoneda.format(cot.subtotal)}</td></tr>
+                        <tr><td style="padding:4px 8px;font-size:12px;color:#64748b;">IVA (${Math.round((appData.empresa.iva||0.16)*100)}%)</td><td style="padding:4px 8px;font-size:12px;color:#334155;text-align:right;">${fmtMoneda.format(cot.iva)}</td></tr>
+                        <tr style="border-top:2px solid rgb(var(--brand-600));"><td style="padding:7px 8px;font-size:14px;font-weight:800;color:#0f172a;">TOTAL</td><td style="padding:7px 8px;font-size:14px;font-weight:800;color:rgb(var(--brand-600));text-align:right;">${fmtMoneda.format(cot.total)}</td></tr>
+                    </table>
+                </div>
+
+                <div style="margin-top:22px;border-top:1px solid #e2e8f0;padding-top:12px;font-size:11px;color:#475569;line-height:1.7;">
+                    <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Condiciones</div>
+                    ${cot.pago ? `<div><b>Forma de pago:</b> ${cot.pago}</div>` : ''}
+                    ${cot.entrega ? `<div><b>Tiempo de entrega:</b> ${cot.entrega}</div>` : ''}
+                    ${cot.garantia ? `<div><b>Garantía:</b> ${cot.garantia}</div>` : ''}
+                    <div><b>Validez:</b> ${appData.empresa.validezDias || 15} días naturales.</div>
+                </div>
+
+                <div style="margin-top:26px;text-align:center;font-size:10px;color:#94a3b8;">
+                    Gracias por su preferencia · HHM Proyectos · ${e.direccion || ''}
+                </div>
+            </div>`;
+        }
+
+        function previsualizarCotizacion() {
+            const cot = leerCotizacion();
+            if (!cot.cliente) { mostrarToast('Captura el nombre del cliente', true); return; }
+            if (cot.desglose.length === 0) { mostrarToast('Agrega al menos un concepto', true); return; }
+            const html = construirDocCotizacion(cot);
+            document.getElementById('cotpdf-preview').innerHTML = html;
+            document.getElementById('cot-print-area').innerHTML = html;
+            openModal('modal-cotpdf');
+        }
+
+        function imprimirCotizacion() {
+            // El área #cot-print-area ya tiene el documento; el CSS de impresión lo aísla
+            window.print();
+        }
+
+        function guardarCotizacion() {
+            const cot = leerCotizacion();
+            if (!cot.cliente) { mostrarToast('Captura el nombre del cliente', true); return; }
+            if (cot.desglose.length === 0) { mostrarToast('Agrega al menos un concepto', true); return; }
+            appData.cotizaciones.unshift(cot);
+            // Deja el documento listo para imprimir por si quieren el PDF
+            document.getElementById('cot-print-area').innerHTML = construirDocCotizacion(cot);
+            mostrarToast('Cotización ' + cot.id + ' guardada');
             switchView('historial_cotizaciones');
         }
 
@@ -1241,13 +1528,26 @@
                             <p class="text-xl font-black text-slate-800">${fmtMoneda.format(cot.total)}</p>
                             <p class="text-[11px] text-slate-400">Subtotal ${fmtMoneda.format(cot.subtotal || 0)} + IVA</p>
                         </div>
-                        <button onclick="verDesgloseCotizacion(${index})" class="text-sm font-medium bg-white text-brand-600 border border-brand-200 px-3 py-1.5 rounded-lg hover:bg-brand-50 transition flex items-center whitespace-nowrap">
-                            <i class="fa-solid fa-list mr-1.5"></i> Ver Desglose
-                        </button>
+                        <div class="flex gap-2">
+                            <button onclick="verDesgloseCotizacion(${index})" class="text-sm font-medium bg-white text-slate-600 border border-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-50 transition flex items-center whitespace-nowrap">
+                                <i class="fa-solid fa-list mr-1.5"></i> Desglose
+                            </button>
+                            <button onclick="pdfDesdeHistorial(${index})" class="text-sm font-medium bg-white text-brand-600 border border-brand-200 px-3 py-1.5 rounded-lg hover:bg-brand-50 transition flex items-center whitespace-nowrap">
+                                <i class="fa-solid fa-file-pdf mr-1.5 text-red-500"></i> PDF
+                            </button>
+                        </div>
                     </div>
                 </div>`;
             });
             list.innerHTML = html || '<p class="text-slate-500">No hay cotizaciones registradas.</p>';
+        }
+
+        function pdfDesdeHistorial(index) {
+            const cot = appData.cotizaciones[index];
+            const html = construirDocCotizacion(cot);
+            document.getElementById('cotpdf-preview').innerHTML = html;
+            document.getElementById('cot-print-area').innerHTML = html;
+            openModal('modal-cotpdf');
         }
 
         function verDesgloseCotizacion(index) {
