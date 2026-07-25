@@ -118,6 +118,9 @@
             <a href="#" onclick="switchView('historial_cotizaciones')" class="nav-btn block px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition">
                 <i class="fa-solid fa-file-invoice-dollar w-6 text-center"></i> Hist. Cotizaciones
             </a>
+            <a href="#" onclick="switchView('precios')" class="nav-btn block px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition">
+                <i class="fa-solid fa-tags w-6 text-center"></i> Precios de Venta
+            </a>
 
             <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 mt-4">Inventario</p>
             <a href="#" onclick="switchView('materiales')" class="nav-btn block px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition">
@@ -280,10 +283,11 @@
                         <thead>
                             <tr>
                                 <th>Código</th>
-                                <th>Descripción</th>
+                                <th>Material</th>
                                 <th>Categoría</th>
-                                <th>Unidad Medida</th>
-                                <th>Precio Unitario</th>
+                                <th>Unidad</th>
+                                <th>Costo Ref.</th>
+                                <th>Stock Mín.</th>
                             </tr>
                         </thead>
                         <tbody id="tb-materiales"></tbody>
@@ -328,7 +332,8 @@
                                 <th>Tipo</th>
                                 <th>Material</th>
                                 <th>Cantidad</th>
-                                <th>Destino / Origen (Obra)</th>
+                                <th>Obra / Destino</th>
+                                <th>Responsable</th>
                             </tr>
                         </thead>
                         <tbody id="tb-movimientos"></tbody>
@@ -348,8 +353,8 @@
                 <!-- Pestañas funcionales de filtro -->
                 <div class="flex space-x-2 mb-6 bg-slate-200 p-1 rounded-lg overflow-x-auto no-scrollbar w-fit border border-slate-300">
                     <button onclick="filtrarObras('Todas', this)" class="obra-tab bg-white shadow-sm text-sm font-medium py-1.5 px-4 rounded-md text-slate-800 whitespace-nowrap transition">Todas</button>
+                    <button onclick="filtrarObras('Activa', this)" class="obra-tab text-sm font-medium py-1.5 px-4 rounded-md text-slate-600 hover:bg-slate-300 whitespace-nowrap transition">Activas</button>
                     <button onclick="filtrarObras('Pendiente', this)" class="obra-tab text-sm font-medium py-1.5 px-4 rounded-md text-slate-600 hover:bg-slate-300 whitespace-nowrap transition">Pendientes</button>
-                    <button onclick="filtrarObras('En Proceso', this)" class="obra-tab text-sm font-medium py-1.5 px-4 rounded-md text-slate-600 hover:bg-slate-300 whitespace-nowrap transition">En Proceso</button>
                     <button onclick="filtrarObras('Completada', this)" class="obra-tab text-sm font-medium py-1.5 px-4 rounded-md text-slate-600 hover:bg-slate-300 whitespace-nowrap transition">Completadas</button>
                 </div>
 
@@ -436,6 +441,28 @@
                 </div>
             </div>
 
+            <!-- VISTA: PRECIOS DE VENTA -->
+            <div id="view-precios" class="view-section">
+                <div class="flex justify-between items-center mb-2">
+                    <h2 class="text-2xl font-bold text-slate-800">Catálogo de Precios de Venta</h2>
+                </div>
+                <p class="text-slate-500 text-sm mb-6">Precio por unidad de trabajo instalado (material + mano de obra). Es tu lista de cobro al cliente.</p>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Código</th>
+                                <th>Concepto</th>
+                                <th>Categoría</th>
+                                <th>Unidad</th>
+                                <th class="text-right">Precio Venta</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tb-precios"></tbody>
+                    </table>
+                </div>
+            </div>
+
             <!-- VISTA: CATÁLOGO HERRAMIENTAS -->
             <div id="view-cat_herramientas" class="view-section">
                 <div class="flex justify-between items-center mb-6">
@@ -445,10 +472,12 @@
                     <table>
                         <thead>
                             <tr>
-                                <th>ID</th>
-                                <th>Nombre Herramienta</th>
+                                <th>Código</th>
+                                <th>Herramienta</th>
+                                <th>Categoría</th>
                                 <th>Marca/Modelo</th>
-                                <th>Estado Físico</th>
+                                <th>Valor Est.</th>
+                                <th>Estado</th>
                             </tr>
                         </thead>
                         <tbody id="tb-cat-herramientas"></tbody>
@@ -486,7 +515,8 @@
                     <table>
                         <thead>
                             <tr>
-                                <th>ID - Herramienta</th>
+                                <th>Herramienta</th>
+                                <th>Estado</th>
                                 <th>Ubicación Actual / Obra</th>
                                 <th>Responsable</th>
                             </tr>
@@ -548,18 +578,24 @@
             <div class="p-6 overflow-y-auto">
                 <form id="form-obra" onsubmit="event.preventDefault(); guardarObra();" class="space-y-4">
                     <div>
-                        <label class="block text-sm font-medium text-slate-700">Nombre del Cliente / Proyecto</label>
-                        <input type="text" id="ob-cliente" required class="mt-1 block w-full rounded-md border-slate-300 border p-2 focus:border-brand-500">
+                        <label class="block text-sm font-medium text-slate-700">Nombre de la Obra / Proyecto</label>
+                        <input type="text" id="ob-nombre" required placeholder="Ej. Edificio Corporativo Torre Norte" class="mt-1 block w-full rounded-md border-slate-300 border p-2 focus:border-brand-500">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-slate-700">Descripción Breve</label>
-                        <input type="text" id="ob-desc" required class="mt-1 block w-full rounded-md border-slate-300 border p-2 focus:border-brand-500">
+                        <label class="block text-sm font-medium text-slate-700">Cliente</label>
+                        <input type="text" id="ob-cliente" required placeholder="Ej. Constructora ABC" class="mt-1 block w-full rounded-md border-slate-300 border p-2 focus:border-brand-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700">Responsable</label>
+                        <input type="text" id="ob-resp" placeholder="Ej. Ing. Ramírez" class="mt-1 block w-full rounded-md border-slate-300 border p-2 focus:border-brand-500">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-slate-700">Estado Inicial</label>
                         <select id="ob-estado" class="mt-1 block w-full rounded-md border-slate-300 border p-2 bg-white">
+                            <option value="Activa">Activa</option>
                             <option value="Pendiente">Pendiente</option>
-                            <option value="En Proceso">En Proceso</option>
+                            <option value="Completada">Completada</option>
+                            <option value="Pausada">Pausada</option>
                         </select>
                     </div>
                     <div class="pt-2 flex justify-end gap-2">
@@ -584,8 +620,10 @@
                     <div>
                         <label class="block text-sm font-medium text-slate-700">Tipo de Movimiento</label>
                         <select id="mov-tipo" class="mt-1 block w-full rounded-md border-slate-300 border p-2 bg-white">
-                            <option value="Entrada">Entrada (Compra)</option>
-                            <option value="Salida">Salida (Hacia Obra)</option>
+                            <option value="Entrada a Bodega">Entrada a Bodega (Compra)</option>
+                            <option value="Salida a Obra">Salida a Obra</option>
+                            <option value="Consumo en Obra">Consumo en Obra</option>
+                            <option value="Devolución a Bodega">Devolución a Bodega</option>
                         </select>
                     </div>
                     <div>
@@ -598,9 +636,13 @@
                             <input type="number" id="mov-cant" required min="1" class="mt-1 block w-full rounded-md border-slate-300 border p-2">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-slate-700">Destino/Origen</label>
-                            <input type="text" id="mov-dest" required placeholder="Ej. OB-01 o Proveedor" class="mt-1 block w-full rounded-md border-slate-300 border p-2">
+                            <label class="block text-sm font-medium text-slate-700">Obra / Destino</label>
+                            <input type="text" id="mov-dest" required placeholder="Ej. OBRA-001 o Proveedor" class="mt-1 block w-full rounded-md border-slate-300 border p-2">
                         </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700">Responsable</label>
+                        <input type="text" id="mov-resp" placeholder="Ej. Carlos Ruiz" class="mt-1 block w-full rounded-md border-slate-300 border p-2">
                     </div>
                     <div class="pt-2 flex justify-end gap-2">
                         <button type="button" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 font-medium" onclick="closeModal('modal-movimiento')">Cancelar</button>
@@ -618,9 +660,9 @@
         // Formateador de moneda
         const fmtMoneda = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
 
-        /* 
-         * BASE DE DATOS SIMULADA
-         * Estructura exacta reflejando: sistema_administrativo_completo-2 (1)_2.xlsx
+        /*
+         * BASE DE DATOS  ·  HHM Proyectos
+         * Datos reales tomados de: sistema_administrativo_completo-2.xlsx
          */
         const appData = {
             empresa: {
@@ -629,61 +671,150 @@
                 rfc: '',
                 telefono: '',
                 email: '',
-                direccion: 'Escobedo, Nuevo León'
+                web: '',
+                direccion: 'Escobedo, Nuevo León',
+                iva: 0.16,
+                validezDias: 15,
+                condicionesPago: '50% anticipo, 50% contra entrega',
+                tiempoEntrega: 'A convenir según alcance',
+                garantia: '90 días en mano de obra'
             },
             materiales: [
-                { id: 'MAT-001', desc: 'Tubo PVC Hidráulico 1/2"', cat: 'Plomería', uni: 'Tramo 3m', precio: 85.00 },
-                { id: 'MAT-002', desc: 'Cable THHW-LS Cal. 12 (Rojo)', cat: 'Electricidad', uni: 'Rollo 100m', precio: 1250.00 },
-                { id: 'MAT-003', desc: 'Contacto Dúplex GFCI', cat: 'Electricidad', uni: 'Pieza', precio: 320.00 },
-                { id: 'MAT-004', desc: 'Codo Cobre 3/4"', cat: 'Plomería', uni: 'Pieza', precio: 25.00 },
-                { id: 'MAT-005', desc: 'Bomba Periférica 1/2 HP', cat: 'Plomería', uni: 'Pieza', precio: 950.00 }
+                { id: 'MAT-001', desc: 'Tubería PVC 1/2"', cat: 'Plomería', uni: 'm', precio: 18.50, min: 200 },
+                { id: 'MAT-002', desc: 'Tubería PVC 3/4"', cat: 'Plomería', uni: 'm', precio: 24.00, min: 150 },
+                { id: 'MAT-003', desc: 'Tubería Conduit EMT 1/2"', cat: 'Eléctrico', uni: 'm', precio: 22.00, min: 200 },
+                { id: 'MAT-004', desc: 'Cable THHW Cal. 12', cat: 'Eléctrico', uni: 'm', precio: 8.50, min: 500 },
+                { id: 'MAT-005', desc: 'Cable THHW Cal. 10', cat: 'Eléctrico', uni: 'm', precio: 12.00, min: 300 },
+                { id: 'MAT-006', desc: 'Contacto Duplex Estándar', cat: 'Eléctrico', uni: 'pza', precio: 35.00, min: 100 },
+                { id: 'MAT-007', desc: 'Contacto GFCI', cat: 'Eléctrico', uni: 'pza', precio: 180.00, min: 40 },
+                { id: 'MAT-008', desc: 'Apagador Sencillo', cat: 'Eléctrico', uni: 'pza', precio: 30.00, min: 80 },
+                { id: 'MAT-009', desc: 'Luminaria LED Empotrable 6"', cat: 'Eléctrico', uni: 'pza', precio: 220.00, min: 60 },
+                { id: 'MAT-010', desc: 'Luminaria LED Panel 2x2', cat: 'Eléctrico', uni: 'pza', precio: 450.00, min: 30 },
+                { id: 'MAT-011', desc: 'Coples PVC 1/2"', cat: 'Plomería', uni: 'pza', precio: 4.50, min: 300 },
+                { id: 'MAT-012', desc: 'Codo PVC 90° 1/2"', cat: 'Plomería', uni: 'pza', precio: 6.00, min: 250 },
+                { id: 'MAT-013', desc: 'Válvula de Esfera 1/2"', cat: 'Plomería', uni: 'pza', precio: 65.00, min: 80 },
+                { id: 'MAT-014', desc: 'Caja Registro Eléctrica 4x4', cat: 'Eléctrico', uni: 'pza', precio: 15.00, min: 150 },
+                { id: 'MAT-015', desc: 'Cinta Aislante', cat: 'Eléctrico', uni: 'rollo', precio: 25.00, min: 100 },
+                { id: 'MAT-016', desc: 'Pegamento PVC', cat: 'Plomería', uni: 'bote', precio: 85.00, min: 40 },
+                { id: 'MAT-017', desc: 'Breaker Termomagnético 20A', cat: 'Eléctrico', uni: 'pza', precio: 95.00, min: 60 },
+                { id: 'MAT-018', desc: 'Centro de Carga 12 Espacios', cat: 'Eléctrico', uni: 'pza', precio: 850.00, min: 15 },
+                { id: 'MAT-019', desc: 'Coplex Cobre 4" (Drenaje)', cat: 'Plomería', uni: 'pza', precio: 22.00, min: 100 },
+                { id: 'MAT-020', desc: 'Silicón Sanitario', cat: 'Plomería', uni: 'cartucho', precio: 45.00, min: 50 }
             ],
             bodega: [
-                { id: 'MAT-001', desc: 'Tubo PVC Hidráulico 1/2"', stock: 45, min: 20 },
-                { id: 'MAT-002', desc: 'Cable THHW-LS Cal. 12 (Rojo)', stock: 2, min: 5 },
-                { id: 'MAT-003', desc: 'Contacto Dúplex GFCI', stock: 15, min: 10 },
-                { id: 'MAT-004', desc: 'Codo Cobre 3/4"', stock: 8, min: 30 },
-                { id: 'MAT-005', desc: 'Bomba Periférica 1/2 HP', stock: 3, min: 2 }
+                { id: 'MAT-001', desc: 'Tubería PVC 1/2"', stock: 260, min: 200 },
+                { id: 'MAT-002', desc: 'Tubería PVC 3/4"', stock: 0, min: 150 },
+                { id: 'MAT-003', desc: 'Tubería Conduit EMT 1/2"', stock: 0, min: 200 },
+                { id: 'MAT-004', desc: 'Cable THHW Cal. 12', stock: 700, min: 500 },
+                { id: 'MAT-005', desc: 'Cable THHW Cal. 10', stock: 0, min: 300 },
+                { id: 'MAT-006', desc: 'Contacto Duplex Estándar', stock: 0, min: 100 },
+                { id: 'MAT-007', desc: 'Contacto GFCI', stock: 0, min: 40 },
+                { id: 'MAT-008', desc: 'Apagador Sencillo', stock: 0, min: 80 },
+                { id: 'MAT-009', desc: 'Luminaria LED Empotrable 6"', stock: 40, min: 60 },
+                { id: 'MAT-010', desc: 'Luminaria LED Panel 2x2', stock: 0, min: 30 },
+                { id: 'MAT-011', desc: 'Coples PVC 1/2"', stock: 0, min: 300 },
+                { id: 'MAT-012', desc: 'Codo PVC 90° 1/2"', stock: 0, min: 250 },
+                { id: 'MAT-013', desc: 'Válvula de Esfera 1/2"', stock: 0, min: 80 },
+                { id: 'MAT-014', desc: 'Caja Registro Eléctrica 4x4', stock: 0, min: 150 },
+                { id: 'MAT-015', desc: 'Cinta Aislante', stock: 0, min: 100 },
+                { id: 'MAT-016', desc: 'Pegamento PVC', stock: 0, min: 40 },
+                { id: 'MAT-017', desc: 'Breaker Termomagnético 20A', stock: 0, min: 60 },
+                { id: 'MAT-018', desc: 'Centro de Carga 12 Espacios', stock: 0, min: 15 },
+                { id: 'MAT-019', desc: 'Coplex Cobre 4" (Drenaje)', stock: 0, min: 100 },
+                { id: 'MAT-020', desc: 'Silicón Sanitario', stock: 0, min: 50 }
             ],
             movimientos: [
-                { fecha: '2026-07-22', tipo: 'Entrada', mat: 'MAT-001', cant: 50, dest: 'Compra Proveedor X' },
-                { fecha: '2026-07-23', tipo: 'Salida', mat: 'MAT-004', cant: 12, dest: 'OB-102 (Plaza Galerías)' },
-                { fecha: '2026-07-24', tipo: 'Salida', mat: 'MAT-002', cant: 1, dest: 'OB-101 (María Rdz)' }
+                { fecha: '15/Jun/2026', tipo: 'Salida a Obra',       mat: 'MAT-009 · Luminaria LED Empotrable 6"', cant: 40,   obra: 'Plaza Comercial Los Pinos', resp: 'Carlos Ruiz', notas: 'Luminarias plaza comercial' },
+                { fecha: '14/Jun/2026', tipo: 'Devolución a Bodega',  mat: 'MAT-001 · Tubería PVC 1/2"',           cant: 10,   obra: 'Edificio Corporativo Torre Norte', resp: 'Carlos Ruiz', notas: 'Sobrante de tubería' },
+                { fecha: '12/Jun/2026', tipo: 'Consumo en Obra',      mat: 'MAT-001 · Tubería PVC 1/2"',           cant: 90,   obra: 'Edificio Corporativo Torre Norte', resp: 'Cuadrilla B', notas: 'Instalación baños' },
+                { fecha: '10/Jun/2026', tipo: 'Consumo en Obra',      mat: 'MAT-004 · Cable THHW Cal. 12',         cant: 180,  obra: 'Edificio Corporativo Torre Norte', resp: 'Cuadrilla A', notas: 'Instalación primer piso' },
+                { fecha: '05/Jun/2026', tipo: 'Salida a Obra',        mat: 'MAT-004 · Cable THHW Cal. 12',         cant: 300,  obra: 'Edificio Corporativo Torre Norte', resp: 'Carlos Ruiz', notas: 'Envío inicial eléctrico' },
+                { fecha: '05/Jun/2026', tipo: 'Salida a Obra',        mat: 'MAT-001 · Tubería PVC 1/2"',           cant: 150,  obra: 'Edificio Corporativo Torre Norte', resp: 'Carlos Ruiz', notas: 'Envío inicial plomería' },
+                { fecha: '03/Jun/2026', tipo: 'Entrada a Bodega',     mat: 'MAT-009 · Luminaria LED Empotrable 6"', cant: 80,  obra: '—', resp: 'Juan Pérez', notas: 'Compra inicial a proveedor' },
+                { fecha: '02/Jun/2026', tipo: 'Entrada a Bodega',     mat: 'MAT-004 · Cable THHW Cal. 12',         cant: 1000, obra: '—', resp: 'Juan Pérez', notas: 'Compra inicial a proveedor' },
+                { fecha: '02/Jun/2026', tipo: 'Entrada a Bodega',     mat: 'MAT-001 · Tubería PVC 1/2"',           cant: 400,  obra: '—', resp: 'Juan Pérez', notas: 'Compra inicial a proveedor' }
             ],
             obras: [
-                { id: 'OB-101', cliente: 'María Rodríguez', desc: 'Instalación Centro de Carga', estado: 'En Proceso', fecha: '24/Jul/2026' },
-                { id: 'OB-102', cliente: 'Plaza Galerías', desc: 'Mantenimiento Red Hidráulica', estado: 'Pendiente', fecha: '26/Jul/2026' },
-                { id: 'OB-103', cliente: 'Constructora del Norte', desc: 'Cableado Piso 3', estado: 'Completada', fecha: '15/Jul/2026' }
+                { id: 'OBRA-001', nombre: 'Edificio Corporativo Torre Norte',  cliente: 'Constructora ABC',        resp: 'Ing. Ramírez', estado: 'Activa', fecha: '01/Feb/2026' },
+                { id: 'OBRA-002', nombre: 'Plaza Comercial Los Pinos',         cliente: 'Grupo Inmobiliario XYZ',  resp: 'Ing. Torres',  estado: 'Activa', fecha: '15/Abr/2026' },
+                { id: 'OBRA-003', nombre: 'Fraccionamiento Las Palmas Etapa 2', cliente: 'Desarrolladora Palmas',   resp: 'Ing. Vega',    estado: 'Activa', fecha: '10/May/2026' }
+            ],
+            preciosVenta: [
+                { id: 'PV-001', concepto: 'Tubería PVC 1/2" Instalada',            uni: 'm',        precio: 55,   cat: 'Plomería' },
+                { id: 'PV-002', concepto: 'Tubería PVC 3/4" Instalada',            uni: 'm',        precio: 68,   cat: 'Plomería' },
+                { id: 'PV-003', concepto: 'Tubería Conduit EMT 1/2" Instalada',    uni: 'm',        precio: 62,   cat: 'Eléctrico' },
+                { id: 'PV-004', concepto: 'Circuito Cal. 12 Instalado (m)',        uni: 'm',        precio: 28,   cat: 'Eléctrico' },
+                { id: 'PV-005', concepto: 'Circuito Cal. 10 Instalado (m)',        uni: 'm',        precio: 38,   cat: 'Eléctrico' },
+                { id: 'PV-006', concepto: 'Contacto Duplex Puesto',                uni: 'pza',      precio: 280,  cat: 'Eléctrico' },
+                { id: 'PV-007', concepto: 'Contacto GFCI Puesto',                  uni: 'pza',      precio: 480,  cat: 'Eléctrico' },
+                { id: 'PV-008', concepto: 'Apagador Sencillo Puesto',              uni: 'pza',      precio: 250,  cat: 'Eléctrico' },
+                { id: 'PV-009', concepto: 'Luminaria LED Empotrable 6" Instalada', uni: 'pza',      precio: 480,  cat: 'Eléctrico' },
+                { id: 'PV-010', concepto: 'Luminaria LED Panel 2x2 Instalada',     uni: 'pza',      precio: 780,  cat: 'Eléctrico' },
+                { id: 'PV-011', concepto: 'Válvula de Esfera 1/2" Instalada',      uni: 'pza',      precio: 180,  cat: 'Plomería' },
+                { id: 'PV-012', concepto: 'Caja Registro Eléctrica Puesta',        uni: 'pza',      precio: 120,  cat: 'Eléctrico' },
+                { id: 'PV-013', concepto: 'Breaker Termomagnético 20A Instalado',  uni: 'pza',      precio: 250,  cat: 'Eléctrico' },
+                { id: 'PV-014', concepto: 'Centro de Carga 12 Espacios Instalado', uni: 'pza',      precio: 2200, cat: 'Eléctrico' },
+                { id: 'PV-015', concepto: 'Coplex Drenaje 4" Instalado',           uni: 'pza',      precio: 150,  cat: 'Plomería' },
+                { id: 'PV-016', concepto: 'Salida Sanitaria Completa (WC)',        uni: 'salida',   precio: 950,  cat: 'Plomería' },
+                { id: 'PV-017', concepto: 'Salida Hidráulica Completa (Lavabo)',   uni: 'salida',   precio: 650,  cat: 'Plomería' },
+                { id: 'PV-018', concepto: 'Hora de Mano de Obra Especializada',    uni: 'hr',       precio: 320,  cat: 'Mano de Obra' },
+                { id: 'PV-019', concepto: 'Visita / Diagnóstico Técnico',          uni: 'visita',   precio: 850,  cat: 'Servicio' },
+                { id: 'PV-020', concepto: 'Proyecto Ejecutivo / Plano Eléctrico',  uni: 'proyecto', precio: 4500, cat: 'Servicio' }
             ],
             herramientas_cat: [
-                { id: 'HER-01', nombre: 'Rotomartillo SDS Plus', marca: 'DeWalt', estado: 'Bueno' },
-                { id: 'HER-02', nombre: 'Multímetro Digital', marca: 'Fluke 117', estado: 'Excelente' },
-                { id: 'HER-03', nombre: 'Termofusora p/PPR', marca: 'Foset', estado: 'Regular (Falta dado 1/2")' },
-                { id: 'HER-04', nombre: 'Escalera Tijera 6 pies', marca: 'Cuprum', estado: 'Bueno' }
+                { id: 'HER-001', nombre: 'Escalera de Aluminio 8 pies',  categoria: 'Escalera',             marca: 'Werner',            valor: 2800, estado: 'Activa' },
+                { id: 'HER-002', nombre: 'Escalera de Aluminio 12 pies', categoria: 'Escalera',             marca: 'Werner',            valor: 4200, estado: 'Activa' },
+                { id: 'HER-003', nombre: 'Escalera de Tijera 6 pies',    categoria: 'Escalera',             marca: 'Cuprum',            valor: 1800, estado: 'Activa' },
+                { id: 'HER-004', nombre: 'Carretilla de Obra',           categoria: 'Carretilla',           marca: 'Truper',            valor: 1500, estado: 'Activa' },
+                { id: 'HER-005', nombre: 'Carretilla de Obra',           categoria: 'Carretilla',           marca: 'Truper',            valor: 1500, estado: 'Activa' },
+                { id: 'HER-006', nombre: 'Rotomartillo SDS Plus',        categoria: 'Herramienta Eléctrica', marca: 'Bosch GBH 2-26',   valor: 4500, estado: 'Activa' },
+                { id: 'HER-007', nombre: 'Rotomartillo SDS Plus',        categoria: 'Herramienta Eléctrica', marca: 'Bosch GBH 2-26',   valor: 4500, estado: 'Activa' },
+                { id: 'HER-008', nombre: 'Taladro Percutor',             categoria: 'Herramienta Eléctrica', marca: 'DeWalt DCD996',    valor: 3200, estado: 'Activa' },
+                { id: 'HER-009', nombre: 'Esmeriladora Angular',         categoria: 'Herramienta Eléctrica', marca: 'Makita 9557',      valor: 1800, estado: 'Activa' },
+                { id: 'HER-010', nombre: 'Máquina Soldadora Inverter',   categoria: 'Soldadura',            marca: 'Lincoln Electric',  valor: 8500, estado: 'Activa' },
+                { id: 'HER-011', nombre: 'Multímetro Digital',           categoria: 'Medición',             marca: 'Fluke 117',         valor: 2200, estado: 'Activa' },
+                { id: 'HER-012', nombre: 'Detector de Voltaje',          categoria: 'Medición',             marca: 'Klein Tools',       valor: 650,  estado: 'Activa' },
+                { id: 'HER-013', nombre: 'Compresor de Aire Portátil',   categoria: 'Equipo Neumático',     marca: 'Campbell Hausfeld', valor: 5500, estado: 'Mantenimiento' },
+                { id: 'HER-014', nombre: 'Cortadora de Tubo PVC',        categoria: 'Plomería',             marca: 'Rothenberger',      valor: 1200, estado: 'Activa' },
+                { id: 'HER-015', nombre: 'Nivel Láser',                  categoria: 'Medición',             marca: 'Bosch GLL 3-80',    valor: 3800, estado: 'Activa' }
             ],
             herramientas_asig: [
-                { herr: 'Rotomartillo SDS Plus', tecnico: 'Juan Pérez', f_entrega: '23/Jul/2026', f_retorno: '25/Jul/2026', estatus: 'En Uso' },
-                { herr: 'Multímetro Digital', tecnico: 'Carlos Gómez', f_entrega: '24/Jul/2026', f_retorno: '24/Jul/2026', estatus: 'Devuelto' }
+                { herr: 'HER-001 · Escalera de Aluminio 8 pies',  tecnico: 'Carlos Ruiz',   f_entrega: '01/Jun/2026', f_retorno: '01/Jul/2026', estatus: 'En Uso' },
+                { herr: 'HER-002 · Escalera de Aluminio 12 pies', tecnico: 'Ing. Vega',     f_entrega: '15/Jun/2026', f_retorno: '20/Jul/2026', estatus: 'En Uso' },
+                { herr: 'HER-004 · Carretilla de Obra',           tecnico: 'Carlos Ruiz',   f_entrega: '03/Jun/2026', f_retorno: '30/Jun/2026', estatus: 'En Uso' },
+                { herr: 'HER-013 · Compresor de Aire Portátil',   tecnico: 'Taller Externo', f_entrega: '10/Jun/2026', f_retorno: '—',           estatus: 'Mantenimiento' }
             ],
             herramientas_ubi: [
-                { herr: 'HER-01 - Rotomartillo SDS Plus', ubi: 'OB-101 (Instalación Centro de Carga)', resp: 'Juan Pérez' },
-                { herr: 'HER-03 - Termofusora p/PPR', ubi: 'Bodega Principal', resp: 'Almacenista' },
-                { herr: 'HER-04 - Escalera Tijera 6 pies', ubi: 'OB-102 (Plaza Galerías)', resp: 'Luis Martínez' }
+                { herr: 'HER-001 · Escalera de Aluminio 8 pies',  estado: 'En Obra',         ubi: 'Edificio Corporativo Torre Norte',   resp: 'Carlos Ruiz' },
+                { herr: 'HER-002 · Escalera de Aluminio 12 pies', estado: 'En Obra',         ubi: 'Fraccionamiento Las Palmas Etapa 2', resp: 'Ing. Vega' },
+                { herr: 'HER-003 · Escalera de Tijera 6 pies',    estado: 'En Bodega',       ubi: 'Bodega Central',                     resp: '—' },
+                { herr: 'HER-004 · Carretilla de Obra',           estado: 'En Obra',         ubi: 'Plaza Comercial Los Pinos',          resp: 'Carlos Ruiz' },
+                { herr: 'HER-005 · Carretilla de Obra',           estado: 'En Bodega',       ubi: 'Bodega Central',                     resp: '—' },
+                { herr: 'HER-006 · Rotomartillo SDS Plus',        estado: 'En Bodega',       ubi: 'Bodega Central',                     resp: 'Cuadrilla A' },
+                { herr: 'HER-007 · Rotomartillo SDS Plus',        estado: 'En Bodega',       ubi: 'Bodega Central',                     resp: '—' },
+                { herr: 'HER-008 · Taladro Percutor',             estado: 'En Bodega',       ubi: 'Bodega Central',                     resp: '—' },
+                { herr: 'HER-009 · Esmeriladora Angular',         estado: 'En Bodega',       ubi: 'Bodega Central',                     resp: '—' },
+                { herr: 'HER-010 · Máquina Soldadora Inverter',   estado: 'En Bodega',       ubi: 'Bodega Central',                     resp: '—' },
+                { herr: 'HER-011 · Multímetro Digital',           estado: 'En Bodega',       ubi: 'Bodega Central',                     resp: '—' },
+                { herr: 'HER-012 · Detector de Voltaje',          estado: 'En Bodega',       ubi: 'Bodega Central',                     resp: '—' },
+                { herr: 'HER-013 · Compresor de Aire Portátil',   estado: 'En Mantenimiento', ubi: 'Taller / Mantenimiento',            resp: 'Taller Externo' },
+                { herr: 'HER-014 · Cortadora de Tubo PVC',        estado: 'En Bodega',       ubi: 'Bodega Central',                     resp: '—' },
+                { herr: 'HER-015 · Nivel Láser',                  estado: 'En Bodega',       ubi: 'Bodega Central',                     resp: '—' }
             ],
             cotizaciones: [
-                { 
-                    id: 'COT-001', cliente: 'María Rodríguez', fecha: '20/Jul/2026', total: 4620.00, 
-                    desglose: [
-                        { desc: 'Centro de Carga QO2', cant: 1, pu: 1100.00 },
-                        { desc: 'Cable THHW-LS 12', cant: 0.5, pu: 1240.00 }, /* Media bobina aprox */
-                        { desc: 'Mano de Obra Instalación', cant: 1, pu: 2900.00 }
-                    ]
+                {
+                    id: 'COT-2026-002', cliente: 'Grupo Inmobiliario XYZ', proyecto: 'Plaza Comercial Los Pinos',
+                    fecha: '10/Jun/2026', subtotal: 38000, iva: 6080, total: 44080, estado: 'Pendiente',
+                    notas: 'Esperando confirmación de presupuesto', desglose: []
                 },
-                { 
-                    id: 'COT-002', cliente: 'Constructora Sur', fecha: '22/Jul/2026', total: 18500.00, 
-                    desglose: [
-                        { desc: 'Tubería PVC y conexiones', cant: 1, pu: 8500.00 },
-                        { desc: 'Mano de obra plomería', cant: 1, pu: 10000.00 }
+                {
+                    id: 'COT-2026-001', cliente: 'Constructora ABC', proyecto: 'Edificio Corporativo Torre Norte',
+                    fecha: '01/Jun/2026', subtotal: 13325, iva: 2132, total: 15457, estado: 'Aprobada',
+                    notas: 'Primera etapa eléctrica', desglose: [
+                        { desc: 'PV-006 · Contacto Duplex Puesto', cant: 8, pu: 280 },
+                        { desc: 'PV-009 · Luminaria LED Empotrable 6" Instalada', cant: 12, pu: 480 },
+                        { desc: 'PV-001 · Tubería PVC 1/2" Instalada', cant: 45, pu: 55 },
+                        { desc: 'PV-016 · Salida Sanitaria Completa (WC)', cant: 3, pu: 950 }
                     ]
                 }
             ]
@@ -726,6 +857,7 @@
             'obras': 'Obras / Proyectos',
             'cotizador': 'Cotizador',
             'historial_cotizaciones': 'Historial de Cotizaciones',
+            'precios': 'Catálogo de Precios de Venta',
             'cat_herramientas': 'Catálogo de Herramientas',
             'asig_herramientas': 'Asignaciones de Herramientas',
             'ubi_herramientas': 'Ubicación de Herramientas'
@@ -770,6 +902,7 @@
                 case 'obras': renderObras(); break;
                 case 'cotizador': initCotizador(); break;
                 case 'historial_cotizaciones': renderHistorialCot(); break;
+                case 'precios': renderPrecios(); break;
                 case 'cat_herramientas': renderCatHerramientas(); break;
                 case 'asig_herramientas': renderAsigHerramientas(); break;
                 case 'ubi_herramientas': renderUbiHerramientas(); break;
@@ -783,7 +916,7 @@
                 return acc + (item.stock * (mat ? mat.precio : 0));
             }, 0);
             
-            const obrasActivas = appData.obras.filter(o => o.estado === 'En Proceso' || o.estado === 'Pendiente').length;
+            const obrasActivas = appData.obras.filter(o => o.estado === 'Activa' || o.estado === 'En Proceso' || o.estado === 'Pendiente').length;
             const matBajos = appData.bodega.filter(b => b.stock <= b.min).length;
             const herrFuera = appData.herramientas_asig.filter(h => h.estatus === 'En Uso').length;
 
@@ -807,10 +940,10 @@
             // Obras recientes
             let htmlObras = '';
             appData.obras.slice(0, 3).forEach(o => {
-                const color = o.estado === 'En Proceso' ? 'text-brand-600 bg-brand-50' : (o.estado === 'Pendiente' ? 'text-amber-600 bg-amber-50' : 'text-green-600 bg-green-50');
+                const color = (o.estado === 'Activa' || o.estado === 'En Proceso') ? 'text-brand-600 bg-brand-50' : (o.estado === 'Pendiente' ? 'text-amber-600 bg-amber-50' : 'text-green-600 bg-green-50');
                 htmlObras += `
                 <div class="p-4 border-b border-slate-50 last:border-0 hover:bg-slate-50 flex justify-between items-center">
-                    <div><p class="font-semibold text-sm text-slate-800">${o.desc}</p><p class="text-xs text-slate-500">${o.cliente}</p></div>
+                    <div><p class="font-semibold text-sm text-slate-800">${o.nombre}</p><p class="text-xs text-slate-500">${o.cliente}</p></div>
                     <span class="text-xs font-medium px-2 py-1 rounded ${color}">${o.estado}</span>
                 </div>`;
             });
@@ -847,15 +980,22 @@
             renderEmpresa();
         }
 
+        function catCls(cat) {
+            if (cat === 'Eléctrico') return 'bg-amber-50 text-amber-700';
+            if (cat === 'Plomería') return 'bg-brand-50 text-brand-700';
+            return 'bg-slate-100 text-slate-600';
+        }
+
         function renderMateriales() {
             let html = '';
             appData.materiales.forEach(m => {
                 html += `<tr>
                     <td class="font-medium text-slate-800">${m.id}</td>
                     <td>${m.desc}</td>
-                    <td><span class="px-2 py-1 rounded bg-slate-100 text-xs">${m.cat}</span></td>
+                    <td><span class="px-2 py-1 rounded text-xs font-medium ${catCls(m.cat)}">${m.cat}</span></td>
                     <td>${m.uni}</td>
                     <td class="font-medium text-slate-700">${fmtMoneda.format(m.precio)}</td>
+                    <td class="text-slate-500">${m.min ?? '—'}</td>
                 </tr>`;
             });
             document.getElementById('tb-materiales').innerHTML = html;
@@ -878,16 +1018,24 @@
             document.getElementById('tb-bodega').innerHTML = html;
         }
 
+        function tipoMovCls(tipo) {
+            if (tipo.includes('Entrada')) return 'text-green-600 bg-green-50';
+            if (tipo.includes('Devolución') || tipo.includes('Devolucion')) return 'text-brand-600 bg-brand-50';
+            if (tipo.includes('Consumo')) return 'text-red-600 bg-red-50';
+            return 'text-amber-600 bg-amber-50'; // Salida a Obra
+        }
+
         function renderMovimientos() {
             let html = '';
             appData.movimientos.forEach(m => {
-                const tipoCls = m.tipo === 'Entrada' ? 'text-green-600 bg-green-50' : 'text-amber-600 bg-amber-50';
+                const dest = m.obra || m.dest || '—';
                 html += `<tr>
                     <td class="text-slate-500">${m.fecha}</td>
-                    <td><span class="px-2 py-1 rounded text-xs font-medium ${tipoCls}">${m.tipo}</span></td>
+                    <td><span class="px-2 py-1 rounded text-xs font-medium ${tipoMovCls(m.tipo)}">${m.tipo}</span></td>
                     <td class="font-medium text-slate-800">${m.mat}</td>
                     <td class="font-bold text-slate-700">${m.cant}</td>
-                    <td>${m.dest}</td>
+                    <td>${dest}</td>
+                    <td class="text-slate-500">${m.resp || '—'}</td>
                 </tr>`;
             });
             document.getElementById('tb-movimientos').innerHTML = html;
@@ -898,9 +1046,10 @@
             const mat = document.getElementById('mov-mat').value;
             const cant = parseInt(document.getElementById('mov-cant').value);
             const dest = document.getElementById('mov-dest').value;
+            const resp = document.getElementById('mov-resp').value;
             const hoy = new Date().toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
-            
-            appData.movimientos.unshift({ fecha: hoy, tipo: tipo, mat: mat, cant: cant, dest: dest });
+
+            appData.movimientos.unshift({ fecha: hoy, tipo, mat, cant, obra: dest, resp });
             mostrarToast('Movimiento registrado');
             closeModal('modal-movimiento');
             document.getElementById('form-mov').reset();
@@ -933,8 +1082,9 @@
 
             obrasFiltradas.forEach(o => {
                 let colorBase = ''; let icon = '';
-                if(o.estado === 'En Proceso') { colorBase = 'blue'; icon = 'fa-person-digging'; }
+                if(o.estado === 'Activa' || o.estado === 'En Proceso') { colorBase = 'brand'; icon = 'fa-person-digging'; }
                 else if(o.estado === 'Pendiente') { colorBase = 'amber'; icon = 'fa-clock'; }
+                else if(o.estado === 'Pausada') { colorBase = 'red'; icon = 'fa-circle-pause'; }
                 else { colorBase = 'green'; icon = 'fa-check-circle'; }
 
                 html += `
@@ -950,8 +1100,9 @@
                             </div>
                         </div>
                     </div>
-                    <h3 class="font-bold text-slate-800 text-lg leading-tight mb-1">${o.desc}</h3>
-                    <p class="text-sm text-slate-500 mb-4"><i class="fa-solid fa-user mr-1.5 text-slate-400"></i>${o.cliente}</p>
+                    <h3 class="font-bold text-slate-800 text-lg leading-tight mb-1">${o.nombre}</h3>
+                    <p class="text-sm text-slate-500 mb-1"><i class="fa-solid fa-user mr-1.5 text-slate-400"></i>${o.cliente}</p>
+                    <p class="text-sm text-slate-500 mb-4"><i class="fa-solid fa-user-tie mr-1.5 text-slate-400"></i>${o.resp || '—'}</p>
                     <div class="border-t border-slate-100 pt-3 flex justify-between items-center text-xs text-slate-400 font-medium">
                         <span><i class="fa-regular fa-calendar mr-1"></i> ${o.fecha}</span>
                         <button class="text-brand-600 hover:underline">Ver Detalle</button>
@@ -962,13 +1113,15 @@
         }
 
         function guardarObra() {
+            const nombre = document.getElementById('ob-nombre').value;
             const cliente = document.getElementById('ob-cliente').value;
-            const desc = document.getElementById('ob-desc').value;
+            const resp = document.getElementById('ob-resp').value;
             const estado = document.getElementById('ob-estado').value;
-            const id = 'OB-' + (100 + appData.obras.length + 1);
+            const consecutivo = String(appData.obras.length + 1).padStart(3, '0');
+            const id = 'OBRA-' + consecutivo;
             const hoy = new Date().toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
-            
-            appData.obras.unshift({ id, cliente, desc, estado, fecha: hoy });
+
+            appData.obras.unshift({ id, nombre, cliente, resp, estado, fecha: hoy });
             mostrarToast('Obra registrada: ' + id);
             closeModal('modal-obra');
             document.getElementById('form-obra').reset();
@@ -1055,26 +1208,40 @@
             switchView('historial_cotizaciones');
         }
 
+        function estadoCotCls(estado) {
+            if (estado === 'Aprobada') return 'bg-green-50 text-green-700 border-green-100';
+            if (estado === 'Pendiente') return 'bg-amber-50 text-amber-700 border-amber-100';
+            if (estado === 'Rechazada') return 'bg-red-50 text-red-700 border-red-100';
+            return 'bg-slate-50 text-slate-600 border-slate-200';
+        }
+
         function renderHistorialCot() {
             const list = document.getElementById('list-cotizaciones');
             let html = '';
             appData.cotizaciones.forEach((cot, index) => {
+                const folio = cot.id.split('-').slice(1).join('-');
                 html += `
                 <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4 transition hover:shadow-md">
                     <div class="flex items-start gap-4">
-                        <div class="bg-slate-100 rounded-lg p-3 text-center min-w-[80px] border border-slate-200">
+                        <div class="bg-slate-100 rounded-lg p-3 text-center min-w-[90px] border border-slate-200">
                             <p class="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Folio</p>
-                            <p class="font-bold text-slate-800 text-lg">${cot.id.split('-')[1]}</p>
+                            <p class="font-bold text-slate-800 text-base leading-tight mt-1">${folio}</p>
                         </div>
                         <div>
-                            <h3 class="font-bold text-slate-800 text-lg">${cot.cliente}</h3>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <h3 class="font-bold text-slate-800 text-lg">${cot.cliente}</h3>
+                                <span class="text-xs font-medium px-2 py-0.5 rounded border ${estadoCotCls(cot.estado)}">${cot.estado || '—'}</span>
+                            </div>
+                            <p class="text-sm text-slate-500 mt-1"><i class="fa-solid fa-helmet-safety mr-1 text-slate-400"></i> ${cot.proyecto || '—'}</p>
                             <p class="text-sm text-slate-500 mt-1"><i class="fa-regular fa-calendar mr-1"></i> ${cot.fecha}</p>
-                            <p class="text-xs text-slate-400 mt-1">${cot.desglose.length} conceptos integrados</p>
                         </div>
                     </div>
                     <div class="flex flex-row md:flex-col items-center md:items-end justify-between border-t md:border-t-0 border-slate-100 pt-4 md:pt-0 gap-3">
-                        <p class="text-xl font-black text-slate-800 bg-green-50 px-3 py-1 rounded border border-green-100">${fmtMoneda.format(cot.total)}</p>
-                        <button onclick="verDesgloseCotizacion(${index})" class="text-sm font-medium bg-white text-brand-600 border border-brand-200 px-3 py-1.5 rounded-lg hover:bg-brand-50 transition flex items-center">
+                        <div class="text-right">
+                            <p class="text-xl font-black text-slate-800">${fmtMoneda.format(cot.total)}</p>
+                            <p class="text-[11px] text-slate-400">Subtotal ${fmtMoneda.format(cot.subtotal || 0)} + IVA</p>
+                        </div>
+                        <button onclick="verDesgloseCotizacion(${index})" class="text-sm font-medium bg-white text-brand-600 border border-brand-200 px-3 py-1.5 rounded-lg hover:bg-brand-50 transition flex items-center whitespace-nowrap">
                             <i class="fa-solid fa-list mr-1.5"></i> Ver Desglose
                         </button>
                     </div>
@@ -1088,21 +1255,46 @@
             document.getElementById('mdl-cot-title').innerText = `Detalle ${cot.id}`;
             document.getElementById('mdl-cot-cliente').innerText = cot.cliente;
             document.getElementById('mdl-cot-fecha').innerText = cot.fecha;
-            
+
             let htmlBody = '';
-            cot.desglose.forEach(item => {
-                htmlBody += `
-                <tr>
-                    <td class="font-medium text-slate-800">${item.desc}</td>
-                    <td class="text-center">${item.cant}</td>
-                    <td class="text-right">${fmtMoneda.format(item.pu)}</td>
-                    <td class="text-right font-bold text-slate-700">${fmtMoneda.format(item.cant * item.pu)}</td>
-                </tr>`;
-            });
+            if (cot.desglose && cot.desglose.length) {
+                cot.desglose.forEach(item => {
+                    htmlBody += `
+                    <tr>
+                        <td class="font-medium text-slate-800">${item.desc}</td>
+                        <td class="text-center">${item.cant}</td>
+                        <td class="text-right">${fmtMoneda.format(item.pu)}</td>
+                        <td class="text-right font-bold text-slate-700">${fmtMoneda.format(item.cant * item.pu)}</td>
+                    </tr>`;
+                });
+            } else {
+                htmlBody = `<tr><td colspan="4" class="text-center text-slate-400 py-6">Cotización registrada como resumen en el historial (sin desglose por concepto).</td></tr>`;
+            }
             document.getElementById('mdl-cot-body').innerHTML = htmlBody;
             document.getElementById('mdl-cot-total').innerText = fmtMoneda.format(cot.total);
-            
+
             openModal('modal-desglose');
+        }
+
+        function renderPrecios() {
+            let html = '';
+            appData.preciosVenta.forEach(p => {
+                html += `<tr>
+                    <td class="font-bold text-slate-600">${p.id}</td>
+                    <td class="font-medium text-slate-800">${p.concepto}</td>
+                    <td><span class="px-2 py-1 rounded text-xs font-medium ${catCls(p.cat)}">${p.cat}</span></td>
+                    <td>${p.uni}</td>
+                    <td class="text-right font-bold text-slate-800">${fmtMoneda.format(p.precio)}</td>
+                </tr>`;
+            });
+            document.getElementById('tb-precios').innerHTML = html;
+        }
+
+        function estadoHerrCls(estado) {
+            if (estado === 'Activa') return 'bg-green-50 text-green-700';
+            if (estado === 'Mantenimiento') return 'bg-amber-50 text-amber-700';
+            if (estado === 'Baja') return 'bg-red-50 text-red-700';
+            return 'bg-slate-100 text-slate-600';
         }
 
         function renderCatHerramientas() {
@@ -1111,17 +1303,28 @@
                 html += `<tr>
                     <td class="font-bold text-slate-600">${h.id}</td>
                     <td class="font-medium text-slate-800">${h.nombre}</td>
+                    <td><span class="px-2 py-1 bg-slate-100 rounded text-xs text-slate-600">${h.categoria}</span></td>
                     <td>${h.marca}</td>
-                    <td><span class="px-2 py-1 bg-slate-100 rounded text-xs text-slate-600">${h.estado}</span></td>
+                    <td class="text-slate-700">${fmtMoneda.format(h.valor)}</td>
+                    <td><span class="px-2 py-1 rounded text-xs font-medium ${estadoHerrCls(h.estado)}">${h.estado}</span></td>
                 </tr>`;
             });
             document.getElementById('tb-cat-herramientas').innerHTML = html;
         }
 
+        function ubiEstadoCls(estado) {
+            if (estado === 'En Obra') return 'bg-brand-50 text-brand-700';
+            if (estado === 'En Bodega') return 'bg-green-50 text-green-700';
+            if (estado === 'En Mantenimiento') return 'bg-amber-50 text-amber-700';
+            return 'bg-slate-100 text-slate-600';
+        }
+
         function renderAsigHerramientas() {
             let html = '';
             appData.herramientas_asig.forEach(a => {
-                const badge = a.estatus === 'En Uso' ? 'bg-brand-100 text-brand-700' : 'bg-slate-100 text-slate-600';
+                let badge = 'bg-slate-100 text-slate-600';
+                if (a.estatus === 'En Uso') badge = 'bg-brand-100 text-brand-700';
+                else if (a.estatus === 'Mantenimiento') badge = 'bg-amber-100 text-amber-700';
                 html += `<tr>
                     <td class="font-medium text-slate-800">${a.herr}</td>
                     <td class="font-semibold text-slate-700"><i class="fa-solid fa-user-gear text-slate-400 mr-1"></i> ${a.tecnico}</td>
@@ -1130,7 +1333,7 @@
                     <td><span class="px-2 py-1 rounded text-xs font-medium ${badge}">${a.estatus}</span></td>
                 </tr>`;
             });
-            document.getElementById('tb-asig-herramientas').innerHTML = html;
+            document.getElementById('tb-asig-herramientas').innerHTML = html || '<tr><td colspan="5" class="text-center text-slate-400 py-6">No hay herramientas asignadas.</td></tr>';
         }
 
         function renderUbiHerramientas() {
@@ -1138,7 +1341,8 @@
             appData.herramientas_ubi.forEach(u => {
                 html += `<tr>
                     <td class="font-medium text-slate-800">${u.herr}</td>
-                    <td class="text-brand-700 font-medium"><i class="fa-solid fa-location-dot mr-1"></i> ${u.ubi}</td>
+                    <td><span class="px-2 py-1 rounded text-xs font-medium ${ubiEstadoCls(u.estado)}">${u.estado}</span></td>
+                    <td class="text-slate-700 font-medium"><i class="fa-solid fa-location-dot mr-1 text-slate-400"></i> ${u.ubi}</td>
                     <td>${u.resp}</td>
                 </tr>`;
             });
