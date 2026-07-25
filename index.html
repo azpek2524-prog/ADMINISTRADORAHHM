@@ -10,6 +10,11 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
+    <!-- Firebase SDK (compat) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
     <script>
         // Paleta de marca conmutable: los tonos se leen de variables CSS (--brand-*)
         // definidas por el tema activo (clase en <html>), para poder probar tonalidades.
@@ -103,6 +108,32 @@
     </style>
 </head>
 <body class="text-gray-800 antialiased h-screen flex overflow-hidden bg-slate-50">
+
+    <!-- Pantalla de Acceso (Login) -->
+    <div id="login-screen" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900 p-4" style="display:flex;">
+        <div class="absolute inset-0 opacity-40" style="background:radial-gradient(circle at 30% 20%, rgb(var(--brand-700)), transparent 55%), radial-gradient(circle at 80% 80%, rgb(var(--brand-900)), transparent 50%);"></div>
+        <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-8 text-center">
+            <div class="w-20 h-20 rounded-2xl bg-white border border-slate-100 shadow-md mx-auto flex items-center justify-center p-2 mb-4">
+                <img src="HHM_PROYECTOS_LOGO.jpeg" alt="HHM Proyectos" class="w-full h-full object-contain">
+            </div>
+            <h1 class="text-xl font-extrabold text-slate-800">HHM <span class="text-brand-600">Proyectos</span></h1>
+            <p class="text-sm text-slate-500 mb-6">Sistema Administrativo · Acceso privado</p>
+
+            <div id="login-loading" class="py-4">
+                <i class="fa-solid fa-circle-notch fa-spin text-brand-500 text-2xl"></i>
+                <p class="text-xs text-slate-400 mt-2">Conectando…</p>
+            </div>
+
+            <div id="login-actions" class="hidden">
+                <button onclick="iniciarSesionGoogle()" class="w-full flex items-center justify-center gap-3 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium py-2.5 rounded-lg transition shadow-sm">
+                    <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/><path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"/><path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238C29.211 35.091 26.715 36 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"/><path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.087 5.571.001-.001.002-.001.003-.002l6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"/></svg>
+                    Iniciar sesión con Google
+                </button>
+                <p id="login-msg" class="text-xs text-red-500 mt-4 hidden"></p>
+                <p class="text-[11px] text-slate-400 mt-6">Acceso restringido a personal autorizado de HHM Proyectos.</p>
+            </div>
+        </div>
+    </div>
 
     <!-- Sidebar / Menú de Navegación -->
     <aside id="sidebar" class="bg-slate-900 text-white w-72 flex-shrink-0 absolute inset-y-0 left-0 transform -translate-x-full md:relative md:translate-x-0 transition duration-200 ease-in-out z-30 flex flex-col shadow-2xl">
@@ -206,11 +237,14 @@
                 </div>
                 <div class="hidden sm:block text-right">
                     <p class="text-sm font-semibold text-slate-700" id="header-empresa-nombre">HHM Proyectos</p>
-                    <p class="text-xs text-slate-500">Administrador</p>
+                    <p class="text-xs text-slate-500" id="header-user-email">Administrador</p>
                 </div>
                 <div class="w-9 h-9 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center border border-brand-200 shadow-sm">
                     <i class="fa-solid fa-user-shield"></i>
                 </div>
+                <button onclick="cerrarSesion()" id="btn-logout" title="Cerrar sesión" class="hidden w-9 h-9 rounded-full bg-slate-100 text-slate-500 hover:bg-red-50 hover:text-red-600 flex items-center justify-center border border-slate-200 transition">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </button>
             </div>
         </header>
 
@@ -917,6 +951,129 @@
         // Formateador de moneda
         const fmtMoneda = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' });
 
+        /* ============================================================
+         *  FIREBASE · Autenticación (Google) + Firestore (nube)
+         * ============================================================ */
+        const firebaseConfig = {
+            apiKey: "AIzaSyCJ5hSYxIBWDy1c5bFuksMU2_Vwftyxtw0",
+            authDomain: "administradorahhm.firebaseapp.com",
+            projectId: "administradorahhm",
+            storageBucket: "administradorahhm.firebasestorage.app",
+            messagingSenderId: "86485683826",
+            appId: "1:86485683826:web:875c5cea60aa6da5637ceb"
+        };
+
+        // Solo estos correos pueden entrar (la base de datos también los valida por reglas)
+        const CORREOS_AUTORIZADOS = [
+            'azpek2524@gmail.com',
+            'hectorhugo.martinez@hotmail.com'
+        ];
+
+        const DOC_DATOS = 'hhm/datos'; // documento único donde vive toda la información
+        let db = null, fbUser = null, syncIniciado = false, aplicandoRemoto = false;
+
+        function emailAutorizado(email) {
+            return !!email && CORREOS_AUTORIZADOS.map(c => c.toLowerCase()).includes(email.toLowerCase());
+        }
+
+        function initFirebase() {
+            if (typeof firebase === 'undefined') {
+                mostrarLoginError('No se pudo cargar Firebase. Revisa tu conexión a internet e inténtalo de nuevo.');
+                return;
+            }
+            try {
+                firebase.initializeApp(firebaseConfig);
+                db = firebase.firestore();
+                firebase.auth().onAuthStateChanged(manejarAuth);
+            } catch (e) {
+                console.error(e);
+                mostrarLoginError('Error al conectar con Firebase: ' + e.message);
+            }
+        }
+
+        function iniciarSesionGoogle() {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            firebase.auth().signInWithPopup(provider).catch(err => {
+                mostrarLoginError('No se pudo iniciar sesión: ' + err.message);
+            });
+        }
+
+        function cerrarSesion() {
+            if (typeof firebase !== 'undefined' && firebase.auth) firebase.auth().signOut();
+        }
+
+        function manejarAuth(user) {
+            const loading = document.getElementById('login-loading');
+            const actions = document.getElementById('login-actions');
+            if (user && emailAutorizado(user.email)) {
+                fbUser = user;
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('btn-logout').classList.remove('hidden');
+                document.getElementById('header-user-email').innerText = user.email;
+                iniciarSync();
+            } else if (user && !emailAutorizado(user.email)) {
+                mostrarLoginError('La cuenta ' + user.email + ' no está autorizada para esta app.');
+                firebase.auth().signOut();
+                loading.classList.add('hidden'); actions.classList.remove('hidden');
+                document.getElementById('login-screen').style.display = 'flex';
+            } else {
+                document.getElementById('login-screen').style.display = 'flex';
+                loading.classList.add('hidden'); actions.classList.remove('hidden');
+            }
+        }
+
+        function mostrarLoginError(msg) {
+            const el = document.getElementById('login-msg');
+            const loading = document.getElementById('login-loading');
+            const actions = document.getElementById('login-actions');
+            if (loading) loading.classList.add('hidden');
+            if (actions) actions.classList.remove('hidden');
+            if (el) { el.innerText = msg; el.classList.remove('hidden'); }
+        }
+
+        // Empaqueta toda la base de datos para guardarla en la nube
+        function snapshotAppData() {
+            return JSON.parse(JSON.stringify({
+                empresa: appData.empresa, materiales: appData.materiales, bodega: appData.bodega,
+                movimientos: appData.movimientos, obras: appData.obras, preciosVenta: appData.preciosVenta,
+                herramientas_cat: appData.herramientas_cat, herramientas_asig: appData.herramientas_asig,
+                herramientas_ubi: appData.herramientas_ubi, cotizaciones: appData.cotizaciones
+            }));
+        }
+
+        function iniciarSync() {
+            if (syncIniciado || !db) return;
+            syncIniciado = true;
+            db.doc(DOC_DATOS).onSnapshot(snap => {
+                if (snap.metadata.hasPendingWrites) return; // ignora el eco de nuestros propios cambios
+                if (snap.exists) {
+                    const data = snap.data();
+                    aplicandoRemoto = true;
+                    Object.keys(data).forEach(k => { if (data[k] !== undefined) appData[k] = data[k]; });
+                    aplicandoRemoto = false;
+                    if (typeof vistaActual !== 'undefined') renderViewData(vistaActual);
+                    document.getElementById('header-empresa-nombre').innerText = appData.empresa.nombre;
+                } else {
+                    // Primera vez: sembrar la nube con los datos actuales
+                    db.doc(DOC_DATOS).set(snapshotAppData())
+                        .then(() => mostrarToast('Base de datos inicializada en la nube'))
+                        .catch(err => mostrarLoginError('No se pudo inicializar la base: ' + err.message));
+                }
+            }, err => {
+                console.error(err);
+                mostrarToast('Error de sincronización con la nube', true);
+            });
+        }
+
+        // Guarda toda la base en la nube (se llama tras cada cambio)
+        function persistir() {
+            if (!db || aplicandoRemoto) return;
+            db.doc(DOC_DATOS).set(snapshotAppData()).catch(err => {
+                console.error(err);
+                mostrarToast('No se pudo guardar en la nube', true);
+            });
+        }
+
         /*
          * BASE DE DATOS  ·  HHM Proyectos
          * Datos reales tomados de: sistema_administrativo_completo-2.xlsx
@@ -1120,7 +1277,9 @@
             'ubi_herramientas': 'Ubicación de Herramientas'
         };
 
+        let vistaActual = 'inicio';
         function switchView(viewId) {
+            vistaActual = viewId;
             // Ocultar vistas
             document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
             // Mostrar solicitada
@@ -1233,6 +1392,7 @@
             appData.empresa.telefono = document.getElementById('emp-tel').value;
             appData.empresa.email = document.getElementById('emp-email').value;
             appData.empresa.direccion = document.getElementById('emp-dir').value;
+            persistir();
             mostrarToast('Datos de empresa actualizados');
             renderEmpresa();
         }
@@ -1307,6 +1467,7 @@
             const hoy = new Date().toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
 
             appData.movimientos.unshift({ fecha: hoy, tipo, mat, cant, obra: dest, resp });
+            persistir();
             mostrarToast('Movimiento registrado');
             closeModal('modal-movimiento');
             document.getElementById('form-mov').reset();
@@ -1379,6 +1540,7 @@
             const hoy = new Date().toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
 
             appData.obras.unshift({ id, nombre, cliente, resp, estado, fecha: hoy });
+            persistir();
             mostrarToast('Obra registrada: ' + id);
             closeModal('modal-obra');
             document.getElementById('form-obra').reset();
@@ -1650,6 +1812,7 @@
             appData.cotizaciones.unshift(cot);
             // Deja el documento listo para imprimir por si quieren el PDF
             document.getElementById('cot-print-area').innerHTML = construirDocCotizacion(cot);
+            persistir();
             mostrarToast('Cotización ' + cot.id + ' guardada');
             switchView('historial_cotizaciones');
         }
@@ -1869,6 +2032,7 @@
             const min = parseFloat(document.getElementById('mat-min').value) || 0;
             appData.materiales.push({ id, desc, cat, uni, precio, min });
             appData.bodega.push({ id, desc, stock: 0, min });
+            persistir();
             mostrarToast('Material agregado: ' + id);
             closeModal('modal-material');
             document.getElementById('form-material').reset();
@@ -1882,6 +2046,7 @@
             const uni = document.getElementById('pv-uni').value.trim();
             const precio = parseFloat(document.getElementById('pv-precio').value) || 0;
             appData.preciosVenta.push({ id, concepto, uni, precio, cat });
+            persistir();
             mostrarToast('Precio agregado: ' + id);
             closeModal('modal-precio');
             document.getElementById('form-precio').reset();
@@ -1897,6 +2062,7 @@
             const estado = document.getElementById('her-estado').value;
             appData.herramientas_cat.push({ id, nombre, categoria, marca, valor, estado });
             appData.herramientas_ubi.push({ herr: id + ' · ' + nombre, estado: 'En Bodega', ubi: 'Bodega Central', resp: '—' });
+            persistir();
             mostrarToast('Herramienta agregada: ' + id);
             closeModal('modal-herramienta');
             document.getElementById('form-herramienta').reset();
@@ -1949,6 +2115,8 @@
             switchView('inicio');
             // Precargar datos de empresa visualmente para otras vistas
             document.getElementById('header-empresa-nombre').innerText = appData.empresa.nombre;
+            // Conectar con Firebase (login + nube)
+            initFirebase();
         };
     </script>
 </body>
