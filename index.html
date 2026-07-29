@@ -405,11 +405,11 @@
                 </div>
                 
                 <!-- Pestañas funcionales de filtro -->
-                <div class="flex space-x-2 mb-6 bg-slate-200 p-1 rounded-lg overflow-x-auto no-scrollbar w-fit border border-slate-300">
-                    <button onclick="filtrarObras('Todas', this)" class="obra-tab bg-white shadow-sm text-sm font-medium py-1.5 px-4 rounded-md text-slate-800 whitespace-nowrap transition">Todas</button>
-                    <button onclick="filtrarObras('Activa', this)" class="obra-tab text-sm font-medium py-1.5 px-4 rounded-md text-slate-600 hover:bg-slate-300 whitespace-nowrap transition">Activas</button>
-                    <button onclick="filtrarObras('Pendiente', this)" class="obra-tab text-sm font-medium py-1.5 px-4 rounded-md text-slate-600 hover:bg-slate-300 whitespace-nowrap transition">Pendientes</button>
-                    <button onclick="filtrarObras('Completada', this)" class="obra-tab text-sm font-medium py-1.5 px-4 rounded-md text-slate-600 hover:bg-slate-300 whitespace-nowrap transition">Completadas</button>
+                <div class="flex flex-wrap gap-1.5 mb-6 bg-slate-200 p-1 rounded-lg border border-slate-300 w-full sm:w-fit">
+                    <button onclick="filtrarObras('Todas', this)" class="obra-tab bg-white shadow-sm text-sm font-medium py-1.5 px-4 rounded-md text-slate-800 whitespace-nowrap transition flex-1 sm:flex-none">Todas</button>
+                    <button onclick="filtrarObras('Activa', this)" class="obra-tab text-sm font-medium py-1.5 px-4 rounded-md text-slate-600 hover:bg-slate-300 whitespace-nowrap transition flex-1 sm:flex-none">Activas</button>
+                    <button onclick="filtrarObras('Pendiente', this)" class="obra-tab text-sm font-medium py-1.5 px-4 rounded-md text-slate-600 hover:bg-slate-300 whitespace-nowrap transition flex-1 sm:flex-none">Pendientes</button>
+                    <button onclick="filtrarObras('Completada', this)" class="obra-tab text-sm font-medium py-1.5 px-4 rounded-md text-slate-600 hover:bg-slate-300 whitespace-nowrap transition flex-1 sm:flex-none">Completadas</button>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" id="list-obras">
@@ -478,19 +478,9 @@
                         <div id="cot-filas" class="space-y-3 md:space-y-1 mt-3 md:mt-1"></div>
                     </div>
 
-                    <!-- Totales y condiciones -->
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
-                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 md:p-6">
-                            <h3 class="font-bold text-slate-700 mb-3 flex items-center"><i class="fa-solid fa-file-signature text-brand-500 mr-2"></i> Condiciones</h3>
-                            <div class="space-y-3">
-                                <div>
-                                    <label class="block text-xs font-medium text-slate-500 mb-1">Forma de pago</label>
-                                    <input type="text" id="cot-pago" class="w-full rounded-md border-slate-300 border p-2 text-sm">
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 md:p-6 flex flex-col justify-center">
+                    <!-- Totales -->
+                    <div class="mb-5 flex justify-end">
+                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 md:p-6 w-full md:max-w-sm">
                             <div class="space-y-2">
                                 <div class="flex justify-between text-slate-600">
                                     <span>Subtotal</span>
@@ -913,8 +903,8 @@
                     <button class="text-slate-400 hover:text-slate-700 px-2" onclick="closeModal('modal-cotpdf')"><i class="fa-solid fa-xmark text-xl"></i></button>
                 </div>
             </div>
-            <div class="p-4 sm:p-6 overflow-y-auto bg-slate-100">
-                <div id="cotpdf-preview" class="bg-white shadow-sm mx-auto" style="max-width:760px;"></div>
+            <div class="p-3 sm:p-6 overflow-auto bg-slate-100">
+                <div id="cotpdf-preview" class="bg-white shadow-sm mx-auto" style="width:720px;"></div>
             </div>
         </div>
     </div>
@@ -1548,8 +1538,6 @@
         function initCotizador() {
             document.getElementById('cot-folio').innerText = siguienteFolioCot();
             document.getElementById('cot-iva-pct').innerText = Math.round((appData.empresa.iva || 0.16) * 100);
-            // Condición por defecto desde la empresa
-            document.getElementById('cot-pago').value = appData.empresa.condicionesPago || '';
             // Limpiar campos de cliente
             ['cot-cliente','cot-atencion','cot-proyecto','cot-ubicacion','cot-telefono','cot-correo'].forEach(id => document.getElementById(id).value = '');
             // Reiniciar conceptos con una fila
@@ -1672,7 +1660,6 @@
                 telefono: document.getElementById('cot-telefono').value.trim(),
                 correo: document.getElementById('cot-correo').value.trim(),
                 fecha: hoy,
-                pago: document.getElementById('cot-pago').value.trim(),
                 subtotal, iva, total, desglose,
                 estado: 'Pendiente'
             };
@@ -1754,11 +1741,7 @@
                     </table>
                 </div>
 
-                ${cot.pago ? `
-                <div style="margin-top:22px;border-top:1px solid #e2e8f0;padding-top:12px;font-size:11px;color:#475569;line-height:1.7;">
-                    <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Condiciones</div>
-                    <div><b>Forma de pago:</b> ${cot.pago}</div>
-                </div>` : ''}
+                <div style="margin-top:28px;"></div>
 
                 <div style="margin-top:26px;text-align:center;font-size:10px;color:#94a3b8;">
                     Gracias por su preferencia · HHM Proyectos · ${e.direccion || ''}
