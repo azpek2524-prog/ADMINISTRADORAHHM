@@ -4,7 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>HHM Proyectos · Sistema Administrativo</title>
+
+    <!-- Ícono e instalación en pantalla de inicio (PWA) -->
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="icon" href="HHM_PROYECTOS_LOGO.jpeg">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="HHM Proyectos">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -994,16 +1004,37 @@
                 firebase.initializeApp(firebaseConfig);
                 db = firebase.firestore();
                 firebase.auth().onAuthStateChanged(manejarAuth);
+                // Resultado del inicio de sesión por redirección (modo app)
+                firebase.auth().getRedirectResult().catch(err => {
+                    if (err && err.code && err.code !== 'auth/no-auth-event') {
+                        mostrarLoginError('No se pudo iniciar sesión: ' + err.message);
+                    }
+                });
             } catch (e) {
                 console.error(e);
                 mostrarLoginError('Error al conectar con Firebase: ' + e.message);
             }
         }
 
+        function enModoApp() {
+            return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+        }
+
         function iniciarSesionGoogle() {
             const provider = new firebase.auth.GoogleAuthProvider();
+            provider.setCustomParameters({ prompt: 'select_account' });
+            // En modo app (pantalla completa) el popup suele fallar; usar redirección
+            if (enModoApp()) {
+                firebase.auth().signInWithRedirect(provider).catch(err => mostrarLoginError('No se pudo iniciar sesión: ' + err.message));
+                return;
+            }
             firebase.auth().signInWithPopup(provider).catch(err => {
-                mostrarLoginError('No se pudo iniciar sesión: ' + err.message);
+                const codigosRedirect = ['auth/popup-blocked', 'auth/operation-not-supported-in-this-environment', 'auth/cancelled-popup-request', 'auth/web-storage-unsupported'];
+                if (codigosRedirect.includes(err.code)) {
+                    firebase.auth().signInWithRedirect(provider).catch(e => mostrarLoginError('No se pudo iniciar sesión: ' + e.message));
+                } else if (err.code !== 'auth/popup-closed-by-user') {
+                    mostrarLoginError('No se pudo iniciar sesión: ' + err.message);
+                }
             });
         }
 
