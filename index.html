@@ -342,6 +342,7 @@
                                 <th>Unidad</th>
                                 <th>Costo Ref.</th>
                                 <th>Stock Mín.</th>
+                                <th class="text-right">Acciones</th>
                             </tr>
                         </thead>
                         <tbody id="tb-materiales"></tbody>
@@ -363,6 +364,7 @@
                                 <th>Stock Actual</th>
                                 <th>Stock Mínimo</th>
                                 <th>Estado</th>
+                                <th class="text-right">Acciones</th>
                             </tr>
                         </thead>
                         <tbody id="tb-bodega"></tbody>
@@ -388,6 +390,7 @@
                                 <th>Cantidad</th>
                                 <th>Obra / Destino</th>
                                 <th>Responsable</th>
+                                <th class="text-right">Acciones</th>
                             </tr>
                         </thead>
                         <tbody id="tb-movimientos"></tbody>
@@ -540,6 +543,7 @@
                                 <th>Categoría</th>
                                 <th>Unidad</th>
                                 <th class="text-right">Precio Venta</th>
+                                <th class="text-right">Acciones</th>
                             </tr>
                         </thead>
                         <tbody id="tb-precios"></tbody>
@@ -565,6 +569,7 @@
                                 <th>Marca/Modelo</th>
                                 <th>Valor Est.</th>
                                 <th>Estado</th>
+                                <th class="text-right">Acciones</th>
                             </tr>
                         </thead>
                         <tbody id="tb-cat-herramientas"></tbody>
@@ -586,6 +591,7 @@
                                 <th>Fecha Entrega</th>
                                 <th>Fecha Retorno Esp.</th>
                                 <th>Estatus</th>
+                                <th class="text-right">Acciones</th>
                             </tr>
                         </thead>
                         <tbody id="tb-asig-herramientas"></tbody>
@@ -606,6 +612,7 @@
                                 <th>Estado</th>
                                 <th>Ubicación Actual / Obra</th>
                                 <th>Responsable</th>
+                                <th class="text-right">Acciones</th>
                             </tr>
                         </thead>
                         <tbody id="tb-ubi-herramientas"></tbody>
@@ -911,6 +918,39 @@
 
     <!-- Área imprimible (solo visible al imprimir) -->
     <div id="cot-print-area"></div>
+
+    <!-- Modal Editor genérico (editar registro) -->
+    <div class="modal opacity-0 pointer-events-none fixed w-full h-full top-0 left-0 flex items-center justify-center z-50 p-4" id="modal-editor">
+        <div class="absolute w-full h-full bg-slate-900 opacity-50 backdrop-blur-sm" onclick="closeModal('modal-editor')"></div>
+        <div class="bg-white w-full max-w-md mx-auto rounded-xl shadow-2xl z-50 overflow-hidden flex flex-col max-h-full">
+            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <h3 class="text-lg font-bold text-slate-800" id="editor-titulo">Editar</h3>
+                <button class="text-slate-400 hover:text-slate-700" onclick="closeModal('modal-editor')"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <form onsubmit="event.preventDefault(); guardarEditor();" class="flex flex-col overflow-hidden">
+                <div class="p-6 overflow-y-auto space-y-4" id="editor-campos"></div>
+                <div class="px-6 py-3 border-t border-slate-100 bg-slate-50 flex justify-end gap-2">
+                    <button type="button" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 font-medium text-sm" onclick="closeModal('modal-editor')">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 font-medium text-sm">Guardar cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Confirmar (eliminar) -->
+    <div class="modal opacity-0 pointer-events-none fixed w-full h-full top-0 left-0 flex items-center justify-center z-[60] p-4" id="modal-confirm">
+        <div class="absolute w-full h-full bg-slate-900 opacity-50 backdrop-blur-sm" onclick="closeModal('modal-confirm')"></div>
+        <div class="bg-white w-full max-w-sm mx-auto rounded-xl shadow-2xl z-50 overflow-hidden">
+            <div class="p-6 text-center">
+                <div class="w-12 h-12 rounded-full bg-red-50 text-red-500 flex items-center justify-center mx-auto mb-4 text-xl"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                <p class="text-slate-700" id="confirm-msg">¿Confirmar?</p>
+            </div>
+            <div class="px-6 py-3 border-t border-slate-100 bg-slate-50 flex justify-center gap-2">
+                <button type="button" class="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 font-medium text-sm" onclick="closeModal('modal-confirm')">Cancelar</button>
+                <button type="button" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium text-sm" onclick="ejecutarConfirm()">Eliminar</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Contenedor Toast -->
     <div id="toast-container" class="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 flex flex-col gap-2"></div>
@@ -1372,9 +1412,146 @@
             return 'bg-slate-100 text-slate-600';
         }
 
+        /* ============ EDITAR / ELIMINAR (sistema genérico) ============ */
+        const COLECCIONES = {
+            materiales: { titulo: 'Material', arr: () => appData.materiales, render: () => renderMateriales(), campos: [
+                { k: 'desc', label: 'Descripción', tipo: 'text' },
+                { k: 'cat', label: 'Categoría', tipo: 'select', opciones: ['Plomería','Eléctrico'] },
+                { k: 'uni', label: 'Unidad', tipo: 'text' },
+                { k: 'precio', label: 'Costo Ref.', tipo: 'number' },
+                { k: 'min', label: 'Stock Mínimo', tipo: 'number' } ] },
+            precios: { titulo: 'Precio de Venta', arr: () => appData.preciosVenta, render: () => renderPrecios(), campos: [
+                { k: 'concepto', label: 'Concepto', tipo: 'text' },
+                { k: 'cat', label: 'Categoría', tipo: 'select', opciones: ['Plomería','Eléctrico','Mano de Obra','Servicio'] },
+                { k: 'uni', label: 'Unidad', tipo: 'text' },
+                { k: 'precio', label: 'Precio de Venta', tipo: 'number' } ] },
+            obras: { titulo: 'Obra', arr: () => appData.obras, render: () => renderObras(), campos: [
+                { k: 'nombre', label: 'Nombre de la Obra', tipo: 'text' },
+                { k: 'cliente', label: 'Cliente', tipo: 'text' },
+                { k: 'resp', label: 'Responsable', tipo: 'text' },
+                { k: 'estado', label: 'Estado', tipo: 'select', opciones: ['Activa','Pendiente','Completada','Pausada'] },
+                { k: 'fecha', label: 'Fecha', tipo: 'text' } ] },
+            bodega: { titulo: 'Registro de Bodega', arr: () => appData.bodega, render: () => renderBodega(), campos: [
+                { k: 'id', label: 'Código', tipo: 'text' },
+                { k: 'desc', label: 'Descripción', tipo: 'text' },
+                { k: 'stock', label: 'Stock Actual', tipo: 'number' },
+                { k: 'min', label: 'Stock Mínimo', tipo: 'number' } ] },
+            movimientos: { titulo: 'Movimiento', arr: () => appData.movimientos, render: () => renderMovimientos(), campos: [
+                { k: 'fecha', label: 'Fecha', tipo: 'text' },
+                { k: 'tipo', label: 'Tipo', tipo: 'select', opciones: ['Entrada a Bodega','Salida a Obra','Consumo en Obra','Devolución a Bodega'] },
+                { k: 'mat', label: 'Material', tipo: 'text' },
+                { k: 'cant', label: 'Cantidad', tipo: 'number' },
+                { k: 'obra', label: 'Obra / Destino', tipo: 'text' },
+                { k: 'resp', label: 'Responsable', tipo: 'text' } ] },
+            herramientas_cat: { titulo: 'Herramienta', arr: () => appData.herramientas_cat, render: () => renderCatHerramientas(), campos: [
+                { k: 'nombre', label: 'Herramienta', tipo: 'text' },
+                { k: 'categoria', label: 'Categoría', tipo: 'text' },
+                { k: 'marca', label: 'Marca / Modelo', tipo: 'text' },
+                { k: 'valor', label: 'Valor Est.', tipo: 'number' },
+                { k: 'estado', label: 'Estado', tipo: 'select', opciones: ['Activa','Mantenimiento','Baja'] } ] },
+            herramientas_asig: { titulo: 'Asignación', arr: () => appData.herramientas_asig, render: () => renderAsigHerramientas(), campos: [
+                { k: 'herr', label: 'Herramienta', tipo: 'text' },
+                { k: 'tecnico', label: 'Asignado a (Técnico)', tipo: 'text' },
+                { k: 'f_entrega', label: 'Fecha Entrega', tipo: 'text' },
+                { k: 'f_retorno', label: 'Fecha Retorno Esp.', tipo: 'text' },
+                { k: 'estatus', label: 'Estatus', tipo: 'select', opciones: ['En Uso','Mantenimiento','Devuelto'] } ] },
+            herramientas_ubi: { titulo: 'Ubicación', arr: () => appData.herramientas_ubi, render: () => renderUbiHerramientas(), campos: [
+                { k: 'herr', label: 'Herramienta', tipo: 'text' },
+                { k: 'estado', label: 'Estado', tipo: 'select', opciones: ['En Obra','En Bodega','En Mantenimiento'] },
+                { k: 'ubi', label: 'Ubicación Actual / Obra', tipo: 'text' },
+                { k: 'resp', label: 'Responsable', tipo: 'text' } ] },
+            cotizaciones: { titulo: 'Cotización', arr: () => appData.cotizaciones, render: () => renderHistorialCot(), campos: [
+                { k: 'cliente', label: 'Cliente', tipo: 'text' },
+                { k: 'proyecto', label: 'Proyecto', tipo: 'text' },
+                { k: 'estado', label: 'Estado', tipo: 'select', opciones: ['Pendiente','Aprobada','Rechazada'] },
+                { k: 'notas', label: 'Notas', tipo: 'text' } ] }
+        };
+
+        function escAttr(v) { return String(v ?? '').replace(/"/g, '&quot;'); }
+
+        // Botones de acción (editar / eliminar) para cada fila
+        function accionesBtns(colKey, index) {
+            return `<div class="flex items-center justify-end gap-3">
+                <button type="button" onclick="abrirEditor('${colKey}',${index})" class="text-slate-400 hover:text-brand-600 transition" title="Editar"><i class="fa-solid fa-pen-to-square"></i></button>
+                <button type="button" onclick="eliminarItem('${colKey}',${index})" class="text-slate-400 hover:text-red-600 transition" title="Eliminar"><i class="fa-solid fa-trash-can"></i></button>
+            </div>`;
+        }
+
+        let editorRef = null;
+        function abrirEditor(colKey, index) {
+            const col = COLECCIONES[colKey];
+            const obj = col.arr()[index];
+            if (!obj) return;
+            editorRef = { colKey, index };
+            document.getElementById('editor-titulo').innerText = 'Editar ' + col.titulo + (obj.id ? ' · ' + obj.id : '');
+            let html = '';
+            col.campos.forEach(c => {
+                const val = obj[c.k] ?? '';
+                html += '<div>';
+                html += `<label class="block text-sm font-medium text-slate-700 mb-1">${c.label}</label>`;
+                if (c.tipo === 'select') {
+                    let ops = c.opciones.slice();
+                    if (val && !ops.includes(val)) ops.unshift(val);
+                    html += `<select data-k="${c.k}" class="editor-field w-full rounded-md border-slate-300 border p-2 text-sm bg-white">` +
+                        ops.map(o => `<option value="${escAttr(o)}" ${o === val ? 'selected' : ''}>${o}</option>`).join('') + `</select>`;
+                } else {
+                    const t = c.tipo === 'number' ? 'number' : 'text';
+                    const step = c.tipo === 'number' ? 'step="any"' : '';
+                    html += `<input data-k="${c.k}" type="${t}" ${step} value="${escAttr(val)}" class="editor-field w-full rounded-md border-slate-300 border p-2 text-sm focus:border-brand-500">`;
+                }
+                html += '</div>';
+            });
+            document.getElementById('editor-campos').innerHTML = html;
+            openModal('modal-editor');
+        }
+
+        function guardarEditor() {
+            if (!editorRef) return;
+            const col = COLECCIONES[editorRef.colKey];
+            const obj = col.arr()[editorRef.index];
+            document.querySelectorAll('#editor-campos .editor-field').forEach(el => {
+                const k = el.dataset.k;
+                const campo = col.campos.find(c => c.k === k);
+                let v = el.value;
+                if (campo.tipo === 'number') v = parseFloat(v) || 0;
+                else v = v.trim();
+                obj[k] = v;
+            });
+            persistir();
+            mostrarToast(col.titulo + ' actualizado');
+            closeModal('modal-editor');
+            col.render();
+        }
+
+        // Confirmación reutilizable
+        let confirmCb = null;
+        function confirmarAccion(msg, cb) {
+            document.getElementById('confirm-msg').innerText = msg;
+            confirmCb = cb;
+            openModal('modal-confirm');
+        }
+        function ejecutarConfirm() {
+            closeModal('modal-confirm');
+            const cb = confirmCb; confirmCb = null;
+            if (cb) cb();
+        }
+
+        function eliminarItem(colKey, index) {
+            const col = COLECCIONES[colKey];
+            const obj = col.arr()[index];
+            if (!obj) return;
+            const nombre = obj.id || obj.nombre || obj.desc || obj.concepto || obj.herr || obj.cliente || col.titulo;
+            confirmarAccion('¿Eliminar "' + nombre + '"? Esta acción no se puede deshacer.', () => {
+                col.arr().splice(index, 1);
+                persistir();
+                mostrarToast(col.titulo + ' eliminado');
+                col.render();
+            });
+        }
+
         function renderMateriales() {
             let html = '';
-            appData.materiales.forEach(m => {
+            appData.materiales.forEach((m, i) => {
                 html += `<tr>
                     <td class="font-medium text-slate-800">${m.id}</td>
                     <td>${m.desc}</td>
@@ -1382,6 +1559,7 @@
                     <td>${m.uni}</td>
                     <td class="font-medium text-slate-700">${fmtMoneda.format(m.precio)}</td>
                     <td class="text-slate-500">${m.min ?? '—'}</td>
+                    <td>${accionesBtns('materiales', i)}</td>
                 </tr>`;
             });
             document.getElementById('tb-materiales').innerHTML = html;
@@ -1389,7 +1567,7 @@
 
         function renderBodega() {
             let html = '';
-            appData.bodega.forEach(b => {
+            appData.bodega.forEach((b, i) => {
                 const isBajo = b.stock <= b.min;
                 const statusCls = isBajo ? 'text-red-600 bg-red-50 border-red-200' : 'text-green-600 bg-green-50 border-green-200';
                 const statusTxt = isBajo ? 'Reabastecer' : 'Óptimo';
@@ -1399,6 +1577,7 @@
                     <td class="font-bold ${isBajo ? 'text-red-600' : 'text-slate-700'}">${b.stock}</td>
                     <td class="text-slate-500">${b.min}</td>
                     <td><span class="px-2 py-1 rounded text-xs border ${statusCls}">${statusTxt}</span></td>
+                    <td>${accionesBtns('bodega', i)}</td>
                 </tr>`;
             });
             document.getElementById('tb-bodega').innerHTML = html;
@@ -1413,7 +1592,7 @@
 
         function renderMovimientos() {
             let html = '';
-            appData.movimientos.forEach(m => {
+            appData.movimientos.forEach((m, i) => {
                 const dest = m.obra || m.dest || '—';
                 html += `<tr>
                     <td class="text-slate-500">${m.fecha}</td>
@@ -1422,6 +1601,7 @@
                     <td class="font-bold text-slate-700">${m.cant}</td>
                     <td>${dest}</td>
                     <td class="text-slate-500">${m.resp || '—'}</td>
+                    <td>${accionesBtns('movimientos', i)}</td>
                 </tr>`;
             });
             document.getElementById('tb-movimientos').innerHTML = html;
@@ -1468,6 +1648,7 @@
             }
 
             obrasFiltradas.forEach(o => {
+                const idx = appData.obras.indexOf(o);
                 let colorBase = ''; let icon = '';
                 if(o.estado === 'Activa' || o.estado === 'En Proceso') { colorBase = 'brand'; icon = 'fa-person-digging'; }
                 else if(o.estado === 'Pendiente') { colorBase = 'amber'; icon = 'fa-clock'; }
@@ -1485,6 +1666,10 @@
                                 <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">${o.id}</p>
                                 <span class="text-xs font-medium px-2 py-0.5 rounded bg-${colorBase}-100 text-${colorBase}-700 mt-1 inline-block">${o.estado}</span>
                             </div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <button type="button" onclick="abrirEditor('obras',${idx})" class="text-slate-400 hover:text-brand-600 transition" title="Editar"><i class="fa-solid fa-pen-to-square"></i></button>
+                            <button type="button" onclick="eliminarItem('obras',${idx})" class="text-slate-400 hover:text-red-600 transition" title="Eliminar"><i class="fa-solid fa-trash-can"></i></button>
                         </div>
                     </div>
                     <h3 class="font-bold text-slate-800 text-lg leading-tight mb-1">${o.nombre}</h3>
@@ -1809,12 +1994,18 @@
                             <p class="text-xl font-black text-slate-800">${fmtMoneda.format(cot.total)}</p>
                             <p class="text-[11px] text-slate-400">Subtotal ${fmtMoneda.format(cot.subtotal || 0)} + IVA</p>
                         </div>
-                        <div class="flex gap-2">
+                        <div class="flex flex-wrap gap-2 justify-end">
                             <button onclick="verDesgloseCotizacion(${index})" class="text-sm font-medium bg-white text-slate-600 border border-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-50 transition flex items-center whitespace-nowrap">
                                 <i class="fa-solid fa-list mr-1.5"></i> Desglose
                             </button>
                             <button onclick="pdfDesdeHistorial(${index})" class="text-sm font-medium bg-white text-brand-600 border border-brand-200 px-3 py-1.5 rounded-lg hover:bg-brand-50 transition flex items-center whitespace-nowrap">
                                 <i class="fa-solid fa-file-pdf mr-1.5 text-red-500"></i> PDF
+                            </button>
+                            <button onclick="abrirEditor('cotizaciones',${index})" class="text-sm font-medium bg-white text-slate-600 border border-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-50 transition flex items-center whitespace-nowrap" title="Editar">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                            <button onclick="eliminarItem('cotizaciones',${index})" class="text-sm font-medium bg-white text-red-500 border border-red-200 px-3 py-1.5 rounded-lg hover:bg-red-50 transition flex items-center whitespace-nowrap" title="Eliminar">
+                                <i class="fa-solid fa-trash-can"></i>
                             </button>
                         </div>
                     </div>
@@ -1859,13 +2050,14 @@
 
         function renderPrecios() {
             let html = '';
-            appData.preciosVenta.forEach(p => {
+            appData.preciosVenta.forEach((p, i) => {
                 html += `<tr>
                     <td class="font-bold text-slate-600">${p.id}</td>
                     <td class="font-medium text-slate-800">${p.concepto}</td>
                     <td><span class="px-2 py-1 rounded text-xs font-medium ${catCls(p.cat)}">${p.cat}</span></td>
                     <td>${p.uni}</td>
                     <td class="text-right font-bold text-slate-800">${fmtMoneda.format(p.precio)}</td>
+                    <td>${accionesBtns('precios', i)}</td>
                 </tr>`;
             });
             document.getElementById('tb-precios').innerHTML = html;
@@ -1880,7 +2072,7 @@
 
         function renderCatHerramientas() {
             let html = '';
-            appData.herramientas_cat.forEach(h => {
+            appData.herramientas_cat.forEach((h, i) => {
                 html += `<tr>
                     <td class="font-bold text-slate-600">${h.id}</td>
                     <td class="font-medium text-slate-800">${h.nombre}</td>
@@ -1888,6 +2080,7 @@
                     <td>${h.marca}</td>
                     <td class="text-slate-700">${fmtMoneda.format(h.valor)}</td>
                     <td><span class="px-2 py-1 rounded text-xs font-medium ${estadoHerrCls(h.estado)}">${h.estado}</span></td>
+                    <td>${accionesBtns('herramientas_cat', i)}</td>
                 </tr>`;
             });
             document.getElementById('tb-cat-herramientas').innerHTML = html;
@@ -1902,7 +2095,7 @@
 
         function renderAsigHerramientas() {
             let html = '';
-            appData.herramientas_asig.forEach(a => {
+            appData.herramientas_asig.forEach((a, i) => {
                 let badge = 'bg-slate-100 text-slate-600';
                 if (a.estatus === 'En Uso') badge = 'bg-brand-100 text-brand-700';
                 else if (a.estatus === 'Mantenimiento') badge = 'bg-amber-100 text-amber-700';
@@ -1912,19 +2105,21 @@
                     <td class="text-sm">${a.f_entrega}</td>
                     <td class="text-sm text-slate-500">${a.f_retorno}</td>
                     <td><span class="px-2 py-1 rounded text-xs font-medium ${badge}">${a.estatus}</span></td>
+                    <td>${accionesBtns('herramientas_asig', i)}</td>
                 </tr>`;
             });
-            document.getElementById('tb-asig-herramientas').innerHTML = html || '<tr><td colspan="5" class="text-center text-slate-400 py-6">No hay herramientas asignadas.</td></tr>';
+            document.getElementById('tb-asig-herramientas').innerHTML = html || '<tr><td colspan="6" class="text-center text-slate-400 py-6">No hay herramientas asignadas.</td></tr>';
         }
 
         function renderUbiHerramientas() {
             let html = '';
-            appData.herramientas_ubi.forEach(u => {
+            appData.herramientas_ubi.forEach((u, i) => {
                 html += `<tr>
                     <td class="font-medium text-slate-800">${u.herr}</td>
                     <td><span class="px-2 py-1 rounded text-xs font-medium ${ubiEstadoCls(u.estado)}">${u.estado}</span></td>
                     <td class="text-slate-700 font-medium"><i class="fa-solid fa-location-dot mr-1 text-slate-400"></i> ${u.ubi}</td>
                     <td>${u.resp}</td>
+                    <td>${accionesBtns('herramientas_ubi', i)}</td>
                 </tr>`;
             });
             document.getElementById('tb-ubi-herramientas').innerHTML = html;
