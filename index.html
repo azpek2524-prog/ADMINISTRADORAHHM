@@ -5,16 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>HHM Proyectos · Sistema Administrativo</title>
 
-    <!-- Ícono e instalación en pantalla de inicio (PWA) -->
+    <!-- Ícono en pantalla de inicio -->
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="icon" href="HHM_PROYECTOS_LOGO.jpeg">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0f172a">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="HHM Proyectos">
+    <!-- Nota: NO se usa 'apple-mobile-web-app-capable' a propósito: en modo pantalla
+         completa iOS rompe el inicio de sesión con Google (la sesión se pierde al
+         volver del paso de Google). Abrir en el navegador mantiene el login funcional. -->
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
