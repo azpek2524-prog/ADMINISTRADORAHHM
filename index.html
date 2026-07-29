@@ -203,17 +203,17 @@
 
     <main class="flex-1 flex flex-col h-screen overflow-hidden relative w-full">
         <!-- Header -->
-        <header class="bg-white shadow-sm border-b border-slate-200 h-16 flex items-center justify-between px-4 lg:px-6 z-10 flex-shrink-0">
-            <div class="flex items-center">
-                <button onclick="toggleSidebar()" class="md:hidden text-slate-500 hover:text-slate-800 focus:outline-none mr-3">
+        <header class="bg-white shadow-sm border-b border-slate-200 h-16 flex items-center justify-between px-3 sm:px-4 lg:px-6 z-10 flex-shrink-0 gap-2">
+            <div class="flex items-center min-w-0 flex-1">
+                <button onclick="toggleSidebar()" class="md:hidden text-slate-500 hover:text-slate-800 focus:outline-none mr-2 flex-shrink-0">
                     <i class="fa-solid fa-bars text-xl"></i>
                 </button>
-                <div class="md:hidden w-8 h-8 rounded-lg bg-slate-900 flex items-center justify-center p-0.5 mr-2">
+                <div class="md:hidden w-8 h-8 rounded-lg bg-slate-900 flex items-center justify-center p-0.5 mr-2 flex-shrink-0">
                     <img src="HHM_PROYECTOS_LOGO.jpeg" alt="HHM" class="w-full h-full object-contain bg-white rounded">
                 </div>
-                <h1 id="topbar-title" class="text-lg font-bold text-slate-800">Inicio</h1>
+                <h1 id="topbar-title" class="text-base sm:text-lg font-bold text-slate-800 truncate">Inicio</h1>
             </div>
-            <div class="flex items-center space-x-3">
+            <div class="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
                 <!-- Selector de tonalidad -->
                 <div class="relative">
                     <button onclick="toggleThemeMenu(event)" title="Cambiar tonalidad" class="w-9 h-9 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700 flex items-center justify-center border border-slate-200 transition">
@@ -239,17 +239,17 @@
                     <p class="text-sm font-semibold text-slate-700" id="header-empresa-nombre">HHM Proyectos</p>
                     <p class="text-xs text-slate-500" id="header-user-email">Administrador</p>
                 </div>
-                <div class="w-9 h-9 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center border border-brand-200 shadow-sm">
+                <div class="hidden sm:flex w-9 h-9 rounded-full bg-brand-100 text-brand-600 items-center justify-center border border-brand-200 shadow-sm">
                     <i class="fa-solid fa-user-shield"></i>
                 </div>
-                <button onclick="cerrarSesion()" id="btn-logout" title="Cerrar sesión" class="hidden w-9 h-9 rounded-full bg-slate-100 text-slate-500 hover:bg-red-50 hover:text-red-600 flex items-center justify-center border border-slate-200 transition">
+                <button onclick="cerrarSesion()" id="btn-logout" title="Cerrar sesión" class="hidden w-9 h-9 rounded-full bg-slate-100 text-slate-500 hover:bg-red-50 hover:text-red-600 flex items-center justify-center border border-slate-200 transition flex-shrink-0">
                     <i class="fa-solid fa-right-from-bracket"></i>
                 </button>
             </div>
         </header>
 
         <!-- Área de Vistas (Scrollable) -->
-        <div class="flex-1 overflow-y-auto p-4 md:p-6 pb-24 w-full">
+        <div class="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 pb-24 w-full max-w-full">
             
             <!-- VISTA: INICIO (Dashboard) -->
             <div id="view-inicio" class="view-section active">
@@ -455,14 +455,6 @@
                                 <label class="block text-sm font-medium text-slate-700 mb-1">Correo</label>
                                 <input type="email" id="cot-correo" placeholder="Opcional" class="w-full rounded-md border-slate-300 border p-2 text-sm focus:ring-brand-500 focus:border-brand-500">
                             </div>
-                            <div>
-                                <label class="block text-sm font-medium text-slate-700 mb-1">Fecha</label>
-                                <input type="date" id="cot-fecha" required onchange="actualizarValidez()" class="w-full rounded-md border-slate-300 border p-2 text-sm focus:ring-brand-500 focus:border-brand-500">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-slate-700 mb-1">Válida hasta</label>
-                                <input type="date" id="cot-validez" class="w-full rounded-md border-slate-300 border p-2 text-sm bg-slate-50 focus:ring-brand-500 focus:border-brand-500">
-                            </div>
                         </div>
                     </div>
 
@@ -475,21 +467,15 @@
                             </button>
                         </div>
 
-                        <div class="overflow-x-auto">
-                            <table class="w-full min-w-[720px]">
-                                <thead>
-                                    <tr class="text-left text-xs text-slate-500 uppercase border-b border-slate-100">
-                                        <th class="pb-2 pr-2 w-[42%]">Concepto</th>
-                                        <th class="pb-2 pr-2 w-[10%]">Unidad</th>
-                                        <th class="pb-2 pr-2 w-[12%]">Cant.</th>
-                                        <th class="pb-2 pr-2 w-[16%]">P. Unitario</th>
-                                        <th class="pb-2 pr-2 w-[16%] text-right">Importe</th>
-                                        <th class="pb-2 w-[4%]"></th>
-                                    </tr>
-                                </thead>
-                                <tbody id="cot-filas"></tbody>
-                            </table>
+                        <!-- Encabezado (solo escritorio) -->
+                        <div class="hidden md:grid md:grid-cols-12 gap-2 px-1 pb-2 text-xs text-slate-500 uppercase border-b border-slate-100">
+                            <div class="md:col-span-5">Concepto</div>
+                            <div class="md:col-span-2">Unidad</div>
+                            <div class="md:col-span-1">Cant.</div>
+                            <div class="md:col-span-2">P. Unitario</div>
+                            <div class="md:col-span-2 text-right">Importe</div>
                         </div>
+                        <div id="cot-filas" class="space-y-3 md:space-y-1 mt-3 md:mt-1"></div>
                     </div>
 
                     <!-- Totales y condiciones -->
@@ -500,14 +486,6 @@
                                 <div>
                                     <label class="block text-xs font-medium text-slate-500 mb-1">Forma de pago</label>
                                     <input type="text" id="cot-pago" class="w-full rounded-md border-slate-300 border p-2 text-sm">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-medium text-slate-500 mb-1">Tiempo de entrega</label>
-                                    <input type="text" id="cot-entrega" class="w-full rounded-md border-slate-300 border p-2 text-sm">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-medium text-slate-500 mb-1">Garantía</label>
-                                    <input type="text" id="cot-garantia" class="w-full rounded-md border-slate-300 border p-2 text-sm">
                                 </div>
                             </div>
                         </div>
@@ -1567,24 +1545,11 @@
             return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
         }
 
-        function actualizarValidez() {
-            const fechaStr = document.getElementById('cot-fecha').value;
-            if (!fechaStr) return;
-            const d = new Date(fechaStr + 'T00:00:00');
-            d.setDate(d.getDate() + (appData.empresa.validezDias || 15));
-            document.getElementById('cot-validez').value = d.toISOString().slice(0, 10);
-        }
-
         function initCotizador() {
-            const hoy = new Date();
-            document.getElementById('cot-fecha').valueAsDate = hoy;
-            actualizarValidez();
             document.getElementById('cot-folio').innerText = siguienteFolioCot();
             document.getElementById('cot-iva-pct').innerText = Math.round((appData.empresa.iva || 0.16) * 100);
-            // Condiciones por defecto desde la empresa
+            // Condición por defecto desde la empresa
             document.getElementById('cot-pago').value = appData.empresa.condicionesPago || '';
-            document.getElementById('cot-entrega').value = appData.empresa.tiempoEntrega || '';
-            document.getElementById('cot-garantia').value = appData.empresa.garantia || '';
             // Limpiar campos de cliente
             ['cot-cliente','cot-atencion','cot-proyecto','cot-ubicacion','cot-telefono','cot-correo'].forEach(id => document.getElementById(id).value = '');
             // Reiniciar conceptos con una fila
@@ -1604,25 +1569,42 @@
         }
 
         function agregarFilaCotizacion() {
-            const tbody = document.getElementById('cot-filas');
-            const tr = document.createElement('tr');
-            tr.className = 'cot-fila align-top';
-            tr.innerHTML = `
-                <td class="py-2 pr-2">
-                    <select class="w-full p-1.5 border border-slate-300 rounded text-sm bg-white concepto-sel" onchange="onConceptoChange(this)"></select>
-                    <input type="text" class="w-full p-1.5 border border-slate-300 rounded text-sm desc mt-1 hidden" placeholder="Descripción del concepto">
-                </td>
-                <td class="py-2 pr-2"><input type="text" class="w-full p-1.5 border border-slate-300 rounded text-sm uni text-center" placeholder="und"></td>
-                <td class="py-2 pr-2"><input type="number" class="w-full p-1.5 border border-slate-300 rounded text-sm cant" value="1" min="0" step="any" oninput="calcCotRow(this)" required></td>
-                <td class="py-2 pr-2"><input type="number" class="w-full p-1.5 border border-slate-300 rounded text-sm pu" value="0" min="0" step="any" oninput="calcCotRow(this)" required></td>
-                <td class="py-2 pr-2 text-right font-medium text-slate-700"><span class="importe">$0.00</span></td>
-                <td class="py-2 text-center"><button type="button" onclick="this.closest('tr').remove(); calcCotTotal();" class="text-red-400 hover:text-red-600" title="Quitar"><i class="fa-solid fa-trash-can"></i></button></td>`;
-            tbody.appendChild(tr);
-            tr.querySelector('.concepto-sel').innerHTML = opcionesPreciosVenta();
+            const cont = document.getElementById('cot-filas');
+            const fila = document.createElement('div');
+            fila.className = 'cot-fila border border-slate-200 rounded-lg p-3 md:p-2 md:border-0 md:rounded-none md:border-b md:border-slate-100';
+            fila.innerHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-2 md:items-start">
+                    <div class="md:col-span-5">
+                        <label class="block md:hidden text-xs font-medium text-slate-500 mb-1">Concepto</label>
+                        <select class="w-full p-2 border border-slate-300 rounded text-sm bg-white concepto-sel" onchange="onConceptoChange(this)"></select>
+                        <input type="text" class="w-full p-2 border border-slate-300 rounded text-sm desc mt-2 hidden" placeholder="Escribe el concepto…">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block md:hidden text-xs font-medium text-slate-500 mb-1">Unidad</label>
+                        <input type="text" class="w-full p-2 border border-slate-300 rounded text-sm uni md:text-center" placeholder="und">
+                    </div>
+                    <div class="md:col-span-1">
+                        <label class="block md:hidden text-xs font-medium text-slate-500 mb-1">Cantidad</label>
+                        <input type="number" class="w-full p-2 border border-slate-300 rounded text-sm cant" value="1" min="0" step="any" oninput="calcCotRow(this)" required>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block md:hidden text-xs font-medium text-slate-500 mb-1">P. Unitario</label>
+                        <input type="number" class="w-full p-2 border border-slate-300 rounded text-sm pu" value="0" min="0" step="any" oninput="calcCotRow(this)" required>
+                    </div>
+                    <div class="md:col-span-2 flex items-center justify-between md:justify-end gap-3 pt-1 md:pt-2">
+                        <div class="md:text-right">
+                            <span class="md:hidden text-xs font-medium text-slate-500">Importe: </span>
+                            <span class="importe font-semibold text-slate-700">$0.00</span>
+                        </div>
+                        <button type="button" onclick="this.closest('.cot-fila').remove(); calcCotTotal();" class="text-red-400 hover:text-red-600 flex-shrink-0" title="Quitar concepto"><i class="fa-solid fa-trash-can"></i></button>
+                    </div>
+                </div>`;
+            cont.appendChild(fila);
+            fila.querySelector('.concepto-sel').innerHTML = opcionesPreciosVenta();
         }
 
         function onConceptoChange(sel) {
-            const tr = sel.closest('tr');
+            const tr = sel.closest('.cot-fila');
             const descInput = tr.querySelector('.desc');
             const uni = tr.querySelector('.uni');
             const pu = tr.querySelector('.pu');
@@ -1646,7 +1628,7 @@
         }
 
         function calcCotRow(inputElem) {
-            const tr = inputElem.closest('tr');
+            const tr = inputElem.closest('.cot-fila');
             const cant = parseFloat(tr.querySelector('.cant').value) || 0;
             const pu = parseFloat(tr.querySelector('.pu').value) || 0;
             const imp = cant * pu;
@@ -1680,8 +1662,7 @@
                 if (desc && cant > 0) desglose.push({ desc, uni, cant, pu });
             });
             const { subtotal, iva, total } = calcCotTotal();
-            const fechaStr = document.getElementById('cot-fecha').value;
-            const validezStr = document.getElementById('cot-validez').value;
+            const hoy = new Date().toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
             return {
                 id: document.getElementById('cot-folio').innerText,
                 cliente: document.getElementById('cot-cliente').value.trim(),
@@ -1690,11 +1671,8 @@
                 ubicacion: document.getElementById('cot-ubicacion').value.trim(),
                 telefono: document.getElementById('cot-telefono').value.trim(),
                 correo: document.getElementById('cot-correo').value.trim(),
-                fecha: fmtFechaISO(fechaStr),
-                validez: fmtFechaISO(validezStr),
+                fecha: hoy,
                 pago: document.getElementById('cot-pago').value.trim(),
-                entrega: document.getElementById('cot-entrega').value.trim(),
-                garantia: document.getElementById('cot-garantia').value.trim(),
                 subtotal, iva, total, desglose,
                 estado: 'Pendiente'
             };
@@ -1737,7 +1715,6 @@
                         <div style="font-size:20px;font-weight:800;color:rgb(var(--brand-600));letter-spacing:1px;">COTIZACIÓN</div>
                         <div style="font-size:12px;color:#334155;margin-top:4px;"><b>${cot.id}</b></div>
                         <div style="font-size:11px;color:#64748b;">Fecha: ${cot.fecha}</div>
-                        <div style="font-size:11px;color:#64748b;">Válida hasta: ${cot.validez || '—'}</div>
                     </div>
                 </div>
 
@@ -1777,13 +1754,11 @@
                     </table>
                 </div>
 
+                ${cot.pago ? `
                 <div style="margin-top:22px;border-top:1px solid #e2e8f0;padding-top:12px;font-size:11px;color:#475569;line-height:1.7;">
                     <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Condiciones</div>
-                    ${cot.pago ? `<div><b>Forma de pago:</b> ${cot.pago}</div>` : ''}
-                    ${cot.entrega ? `<div><b>Tiempo de entrega:</b> ${cot.entrega}</div>` : ''}
-                    ${cot.garantia ? `<div><b>Garantía:</b> ${cot.garantia}</div>` : ''}
-                    <div><b>Validez:</b> ${appData.empresa.validezDias || 15} días naturales.</div>
-                </div>
+                    <div><b>Forma de pago:</b> ${cot.pago}</div>
+                </div>` : ''}
 
                 <div style="margin-top:26px;text-align:center;font-size:10px;color:#94a3b8;">
                     Gracias por su preferencia · HHM Proyectos · ${e.direccion || ''}
