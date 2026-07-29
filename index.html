@@ -5,16 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>HHM Proyectos · Sistema Administrativo</title>
 
-    <!-- Ícono en pantalla de inicio -->
+    <!-- Ícono e instalación en pantalla de inicio (PWA, pantalla completa) -->
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="icon" href="HHM_PROYECTOS_LOGO.jpeg">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0f172a">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="HHM Proyectos">
-    <!-- Nota: NO se usa 'apple-mobile-web-app-capable' a propósito: en modo pantalla
-         completa iOS rompe el inicio de sesión con Google (la sesión se pierde al
-         volver del paso de Google). Abrir en el navegador mantiene el login funcional. -->
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -135,10 +135,19 @@
             </div>
 
             <div id="login-actions" class="hidden">
-                <button onclick="iniciarSesionGoogle()" class="w-full flex items-center justify-center gap-3 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium py-2.5 rounded-lg transition shadow-sm">
-                    <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/><path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"/><path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238C29.211 35.091 26.715 36 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"/><path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.087 5.571.001-.001.002-.001.003-.002l6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"/></svg>
-                    Iniciar sesión con Google
-                </button>
+                <form onsubmit="event.preventDefault(); iniciarSesionCorreo();" class="space-y-3 text-left">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">Correo</label>
+                        <input type="email" id="login-email" required autocomplete="username" placeholder="tucorreo@ejemplo.com" class="w-full rounded-lg border border-slate-300 p-2.5 text-sm focus:border-brand-500 focus:ring-brand-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">Contraseña</label>
+                        <input type="password" id="login-password" required autocomplete="current-password" placeholder="••••••••" class="w-full rounded-lg border border-slate-300 p-2.5 text-sm focus:border-brand-500 focus:ring-brand-500">
+                    </div>
+                    <button type="submit" id="login-btn" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-medium py-2.5 rounded-lg transition shadow-sm">
+                        Entrar
+                    </button>
+                </form>
                 <p id="login-msg" class="text-xs text-red-500 mt-4 hidden"></p>
                 <p class="text-[11px] text-slate-400 mt-6">Acceso restringido a personal autorizado de HHM Proyectos.</p>
             </div>
@@ -1004,38 +1013,30 @@
                 firebase.initializeApp(firebaseConfig);
                 db = firebase.firestore();
                 firebase.auth().onAuthStateChanged(manejarAuth);
-                // Resultado del inicio de sesión por redirección (modo app)
-                firebase.auth().getRedirectResult().catch(err => {
-                    if (err && err.code && err.code !== 'auth/no-auth-event') {
-                        mostrarLoginError('No se pudo iniciar sesión: ' + err.message);
-                    }
-                });
             } catch (e) {
                 console.error(e);
                 mostrarLoginError('Error al conectar con Firebase: ' + e.message);
             }
         }
 
-        function enModoApp() {
-            return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-        }
-
-        function iniciarSesionGoogle() {
-            const provider = new firebase.auth.GoogleAuthProvider();
-            provider.setCustomParameters({ prompt: 'select_account' });
-            // En modo app (pantalla completa) el popup suele fallar; usar redirección
-            if (enModoApp()) {
-                firebase.auth().signInWithRedirect(provider).catch(err => mostrarLoginError('No se pudo iniciar sesión: ' + err.message));
-                return;
-            }
-            firebase.auth().signInWithPopup(provider).catch(err => {
-                const codigosRedirect = ['auth/popup-blocked', 'auth/operation-not-supported-in-this-environment', 'auth/cancelled-popup-request', 'auth/web-storage-unsupported'];
-                if (codigosRedirect.includes(err.code)) {
-                    firebase.auth().signInWithRedirect(provider).catch(e => mostrarLoginError('No se pudo iniciar sesión: ' + e.message));
-                } else if (err.code !== 'auth/popup-closed-by-user') {
-                    mostrarLoginError('No se pudo iniciar sesión: ' + err.message);
-                }
-            });
+        function iniciarSesionCorreo() {
+            const email = document.getElementById('login-email').value.trim();
+            const pass = document.getElementById('login-password').value;
+            const btn = document.getElementById('login-btn');
+            const msg = document.getElementById('login-msg');
+            if (msg) msg.classList.add('hidden');
+            if (btn) { btn.disabled = true; btn.innerText = 'Entrando…'; }
+            firebase.auth().signInWithEmailAndPassword(email, pass)
+                .catch(err => {
+                    let texto = 'No se pudo iniciar sesión.';
+                    if (err.code === 'auth/invalid-email') texto = 'El correo no es válido.';
+                    else if (['auth/user-not-found', 'auth/wrong-password', 'auth/invalid-credential'].includes(err.code)) texto = 'Correo o contraseña incorrectos.';
+                    else if (err.code === 'auth/too-many-requests') texto = 'Demasiados intentos. Espera un momento e inténtalo de nuevo.';
+                    else if (err.code === 'auth/user-disabled') texto = 'Esta cuenta está deshabilitada.';
+                    else texto = 'No se pudo iniciar sesión: ' + err.message;
+                    mostrarLoginError(texto);
+                })
+                .finally(() => { if (btn) { btn.disabled = false; btn.innerText = 'Entrar'; } });
         }
 
         function cerrarSesion() {

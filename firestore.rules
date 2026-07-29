@@ -2,10 +2,9 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Solo cuentas de Google verificadas y autorizadas pueden leer/escribir.
+    // Solo las cuentas autorizadas (correo en la lista) pueden leer/escribir.
     function autorizado() {
       return request.auth != null
-        && request.auth.token.email_verified == true
         && request.auth.token.email in [
           'azpek2524@gmail.com',
           'hectorhugo.martinez@hotmail.com',
