@@ -373,6 +373,9 @@
             <div id="view-bodega" class="view-section">
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-2xl font-bold text-slate-800">Inventario de Bodega</h2>
+                    <button onclick="abrirNuevo('bodega')" class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg shadow-sm text-sm font-medium transition flex items-center">
+                        <i class="fa-solid fa-plus mr-2"></i> Agregar
+                    </button>
                 </div>
                 <div class="table-container">
                     <table>
@@ -600,6 +603,9 @@
             <div id="view-asig_herramientas" class="view-section">
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-2xl font-bold text-slate-800">Asignaciones a Personal</h2>
+                    <button onclick="abrirNuevo('herramientas_asig')" class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg shadow-sm text-sm font-medium transition flex items-center">
+                        <i class="fa-solid fa-plus mr-2"></i> Agregar
+                    </button>
                 </div>
                 <div class="table-container">
                     <table>
@@ -622,6 +628,9 @@
             <div id="view-ubi_herramientas" class="view-section">
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-2xl font-bold text-slate-800">Ubicación de Herramientas</h2>
+                    <button onclick="abrirNuevo('herramientas_ubi')" class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg shadow-sm text-sm font-medium transition flex items-center">
+                        <i class="fa-solid fa-plus mr-2"></i> Agregar
+                    </button>
                 </div>
                 <div class="table-container">
                     <table>
@@ -1510,12 +1519,14 @@
         }
 
         let editorRef = null;
+        // index = -1 abre en modo "nuevo" (registro en blanco)
         function abrirEditor(colKey, index) {
             const col = COLECCIONES[colKey];
-            const obj = col.arr()[index];
+            const esNuevo = index === -1;
+            const obj = esNuevo ? {} : col.arr()[index];
             if (!obj) return;
             editorRef = { colKey, index };
-            document.getElementById('editor-titulo').innerText = 'Editar ' + col.titulo + (obj.id ? ' · ' + obj.id : '');
+            document.getElementById('editor-titulo').innerText = (esNuevo ? 'Nuevo · ' : 'Editar · ') + col.titulo + (!esNuevo && obj.id ? ' · ' + obj.id : '');
             let html = '';
             col.campos.forEach(c => {
                 const val = obj[c.k] ?? '';
@@ -1537,10 +1548,13 @@
             openModal('modal-editor');
         }
 
+        function abrirNuevo(colKey) { abrirEditor(colKey, -1); }
+
         function guardarEditor() {
             if (!editorRef) return;
             const col = COLECCIONES[editorRef.colKey];
-            const obj = col.arr()[editorRef.index];
+            const esNuevo = editorRef.index === -1;
+            const obj = esNuevo ? {} : col.arr()[editorRef.index];
             document.querySelectorAll('#editor-campos .editor-field').forEach(el => {
                 const k = el.dataset.k;
                 const campo = col.campos.find(c => c.k === k);
@@ -1549,8 +1563,9 @@
                 else v = v.trim();
                 obj[k] = v;
             });
+            if (esNuevo) col.arr().unshift(obj);
             persistir();
-            mostrarToast(col.titulo + ' actualizado');
+            mostrarToast(col.titulo + (esNuevo ? ' agregado' : ' actualizado'));
             closeModal('modal-editor');
             col.render();
         }
