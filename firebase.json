@@ -7,7 +7,7 @@
       "**/.*",
       "**/node_modules/**",
       "**/*.xlsx",
-      "README.md"
+      "**/*.md"
     ],
     "headers": [
       {
