@@ -179,6 +179,9 @@
             <a href="#" onclick="switchView('obras')" class="nav-btn block px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition">
                 <i class="fa-solid fa-helmet-safety w-6 text-center"></i> Obras
             </a>
+            <a href="#" onclick="switchView('inv_obra')" class="nav-btn block px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition">
+                <i class="fa-solid fa-truck-ramp-box w-6 text-center"></i> Inventario de Obra
+            </a>
             <a href="#" onclick="switchView('cotizador')" class="nav-btn block px-3 py-2.5 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition">
                 <i class="fa-solid fa-calculator w-6 text-center"></i> Cotizador
             </a>
@@ -442,6 +445,72 @@
                 </div>
             </div>
 
+            <!-- VISTA: INVENTARIO DE OBRA -->
+            <div id="view-inv_obra" class="view-section">
+                <div class="mb-6">
+                    <h2 class="text-2xl font-bold text-slate-800">Inventario de Obra</h2>
+                    <p class="text-slate-500 text-sm">Registra el material que llegó a cada obra.</p>
+                </div>
+
+                <!-- Captura -->
+                <form id="form-invobra" onsubmit="event.preventDefault(); guardarInvObra();">
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 md:p-6 mb-5">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Obra <span class="text-red-500">*</span></label>
+                                <select id="io-obra" required class="w-full rounded-md border-slate-300 border p-2 text-sm bg-white focus:border-brand-500"></select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Fecha <span class="text-red-500">*</span></label>
+                                <input type="date" id="io-fecha" required class="w-full rounded-md border-slate-300 border p-2 text-sm focus:border-brand-500">
+                            </div>
+                        </div>
+
+                        <div class="flex justify-between items-center border-b border-slate-100 pb-3 mb-3">
+                            <h3 class="font-bold text-slate-700 flex items-center"><i class="fa-solid fa-boxes-packing text-brand-500 mr-2"></i> Materiales recibidos</h3>
+                            <button type="button" onclick="agregarFilaInvObra()" class="text-sm bg-brand-50 hover:bg-brand-100 text-brand-700 px-3 py-1.5 rounded-lg border border-brand-200 flex items-center transition font-medium">
+                                <i class="fa-solid fa-plus mr-1"></i> Agregar material
+                            </button>
+                        </div>
+                        <div id="invobra-filas" class="space-y-3"></div>
+
+                        <div class="flex justify-end mt-5">
+                            <button type="submit" class="bg-brand-600 hover:bg-brand-700 text-white px-6 py-2.5 rounded-lg font-medium transition shadow-sm flex items-center">
+                                <i class="fa-solid fa-floppy-disk mr-2"></i> Guardar inventario
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+                <!-- Reporte -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 md:p-6">
+                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
+                        <h3 class="font-bold text-slate-700 flex items-center"><i class="fa-solid fa-clipboard-list text-brand-500 mr-2"></i> Reporte de inventario</h3>
+                        <div class="flex items-center gap-2">
+                            <label class="text-sm text-slate-500">Obra:</label>
+                            <select id="io-filtro" onchange="renderInvObra()" class="rounded-md border-slate-300 border p-1.5 text-sm bg-white"></select>
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Obra</th>
+                                    <th>Fecha</th>
+                                    <th>Tipo</th>
+                                    <th>Material</th>
+                                    <th>Unidad</th>
+                                    <th>Cant.</th>
+                                    <th>PDF</th>
+                                    <th class="text-right">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tb-invobra"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
             <!-- VISTA: COTIZADOR -->
             <div id="view-cotizador" class="view-section">
                 <div class="flex flex-col sm:flex-row justify-between sm:items-center mb-6 gap-2">
@@ -613,6 +682,7 @@
                             <tr>
                                 <th>Herramienta</th>
                                 <th>Asignado A (Técnico)</th>
+                                <th>Obra</th>
                                 <th>Fecha Entrega</th>
                                 <th>Fecha Retorno Esp.</th>
                                 <th>Estatus</th>
@@ -1087,7 +1157,8 @@
                 empresa: appData.empresa, materiales: appData.materiales, bodega: appData.bodega,
                 movimientos: appData.movimientos, obras: appData.obras, preciosVenta: appData.preciosVenta,
                 herramientas_cat: appData.herramientas_cat, herramientas_asig: appData.herramientas_asig,
-                herramientas_ubi: appData.herramientas_ubi, cotizaciones: appData.cotizaciones
+                herramientas_ubi: appData.herramientas_ubi, cotizaciones: appData.cotizaciones,
+                inventarioObra: appData.inventarioObra || [], planos: appData.planos || []
             }));
         }
 
@@ -1122,6 +1193,46 @@
                 console.error(err);
                 mostrarToast('No se pudo guardar en la nube', true);
             });
+        }
+
+        /* ===== Archivos (PDF) guardados en Firestore, sin costo =====
+           Cada archivo va en su propio documento 'archivos/{id}' como base64.
+           Límite ~700 KB por archivo (límite de Firestore por documento). */
+        const LIMITE_ARCHIVO = 700 * 1024;
+        function subirArchivo(file) {
+            return new Promise((resolve, reject) => {
+                if (!db) { reject(new Error('Sin conexión a la nube')); return; }
+                if (file.size > LIMITE_ARCHIVO) {
+                    reject(new Error('El archivo pesa ' + Math.round(file.size / 1024) + ' KB. El máximo es ~700 KB; comprime el PDF e inténtalo de nuevo.'));
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = () => {
+                    db.collection('archivos').add({
+                        nombre: file.name, tipo: file.type || 'application/pdf',
+                        data: reader.result, tam: file.size, creado: Date.now()
+                    }).then(ref => resolve({ id: ref.id, nombre: file.name }))
+                      .catch(reject);
+                };
+                reader.onerror = () => reject(new Error('No se pudo leer el archivo'));
+                reader.readAsDataURL(file);
+            });
+        }
+        function abrirArchivo(archivoId) {
+            if (!db) return;
+            mostrarToast('Abriendo archivo…');
+            db.collection('archivos').doc(archivoId).get().then(snap => {
+                if (!snap.exists) { mostrarToast('Archivo no encontrado', true); return; }
+                fetch(snap.data().data).then(r => r.blob()).then(blob => {
+                    const url = URL.createObjectURL(blob);
+                    window.open(url, '_blank');
+                    setTimeout(() => URL.revokeObjectURL(url), 60000);
+                });
+            }).catch(err => { console.error(err); mostrarToast('No se pudo abrir el archivo', true); });
+        }
+        function eliminarArchivo(archivoId) {
+            if (!db || !archivoId) return;
+            db.collection('archivos').doc(archivoId).delete().catch(e => console.error(e));
         }
 
         /*
@@ -1243,10 +1354,10 @@
                 { id: 'HER-015', nombre: 'Nivel Láser',                  categoria: 'Medición',             marca: 'Bosch GLL 3-80',    valor: 3800, estado: 'Activa' }
             ],
             herramientas_asig: [
-                { herr: 'HER-001 · Escalera de Aluminio 8 pies',  tecnico: 'Carlos Ruiz',   f_entrega: '01/Jun/2026', f_retorno: '01/Jul/2026', estatus: 'En Uso' },
-                { herr: 'HER-002 · Escalera de Aluminio 12 pies', tecnico: 'Ing. Vega',     f_entrega: '15/Jun/2026', f_retorno: '20/Jul/2026', estatus: 'En Uso' },
-                { herr: 'HER-004 · Carretilla de Obra',           tecnico: 'Carlos Ruiz',   f_entrega: '03/Jun/2026', f_retorno: '30/Jun/2026', estatus: 'En Uso' },
-                { herr: 'HER-013 · Compresor de Aire Portátil',   tecnico: 'Taller Externo', f_entrega: '10/Jun/2026', f_retorno: '—',           estatus: 'Mantenimiento' }
+                { herr: 'HER-001 · Escalera de Aluminio 8 pies',  tecnico: 'Carlos Ruiz',   obra: 'Edificio Corporativo Torre Norte',   f_entrega: '01/Jun/2026', f_retorno: '01/Jul/2026', estatus: 'En Uso' },
+                { herr: 'HER-002 · Escalera de Aluminio 12 pies', tecnico: 'Ing. Vega',     obra: 'Fraccionamiento Las Palmas Etapa 2', f_entrega: '15/Jun/2026', f_retorno: '20/Jul/2026', estatus: 'En Uso' },
+                { herr: 'HER-004 · Carretilla de Obra',           tecnico: 'Carlos Ruiz',   obra: 'Plaza Comercial Los Pinos',          f_entrega: '03/Jun/2026', f_retorno: '30/Jun/2026', estatus: 'En Uso' },
+                { herr: 'HER-013 · Compresor de Aire Portátil',   tecnico: 'Taller Externo', obra: '',                                   f_entrega: '10/Jun/2026', f_retorno: '—',           estatus: 'Mantenimiento' }
             ],
             herramientas_ubi: [
                 { herr: 'HER-001 · Escalera de Aluminio 8 pies',  estado: 'En Obra',         ubi: 'Edificio Corporativo Torre Norte',   resp: 'Carlos Ruiz' },
@@ -1281,7 +1392,11 @@
                         { desc: 'PV-016 · Salida Sanitaria Completa (WC)', cant: 3, pu: 950 }
                     ]
                 }
-            ]
+            ],
+            // Inventario de material recibido en cada obra
+            inventarioObra: [],
+            // Planos (PDF) por obra
+            planos: []
         };
 
         // Estado global para filtros
@@ -1319,6 +1434,7 @@
             'bodega': 'Inventario de Bodega',
             'movimientos': 'Movimientos de Inventario',
             'obras': 'Obras / Proyectos',
+            'inv_obra': 'Inventario de Obra',
             'cotizador': 'Cotizador',
             'historial_cotizaciones': 'Historial de Cotizaciones',
             'precios': 'Catálogo de Precios de Venta',
@@ -1366,6 +1482,7 @@
                 case 'bodega': renderBodega(); break;
                 case 'movimientos': renderMovimientos(); break;
                 case 'obras': renderObras(); break;
+                case 'inv_obra': initInvObra(); break;
                 case 'cotizador': initCotizador(); break;
                 case 'historial_cotizaciones': renderHistorialCot(); break;
                 case 'precios': renderPrecios(); break;
@@ -1493,6 +1610,7 @@
             herramientas_asig: { titulo: 'Asignación', arr: () => appData.herramientas_asig, render: () => renderAsigHerramientas(), campos: [
                 { k: 'herr', label: 'Herramienta', tipo: 'text' },
                 { k: 'tecnico', label: 'Asignado a (Técnico)', tipo: 'text' },
+                { k: 'obra', label: 'Obra', tipo: 'obra' },
                 { k: 'f_entrega', label: 'Fecha Entrega', tipo: 'text' },
                 { k: 'f_retorno', label: 'Fecha Retorno Esp.', tipo: 'text' },
                 { k: 'estatus', label: 'Estatus', tipo: 'select', opciones: ['En Uso','Mantenimiento','Devuelto'] } ] },
@@ -1505,7 +1623,14 @@
                 { k: 'cliente', label: 'Cliente', tipo: 'text' },
                 { k: 'proyecto', label: 'Proyecto', tipo: 'text' },
                 { k: 'estado', label: 'Estado', tipo: 'select', opciones: ['Pendiente','Aprobada','Rechazada'] },
-                { k: 'notas', label: 'Notas', tipo: 'text' } ] }
+                { k: 'notas', label: 'Notas', tipo: 'text' } ] },
+            inventarioObra: { titulo: 'Registro de Inventario de Obra', arr: () => appData.inventarioObra, render: () => renderInvObra(), campos: [
+                { k: 'obra', label: 'Obra', tipo: 'obra' },
+                { k: 'fecha', label: 'Fecha', tipo: 'text' },
+                { k: 'tipo', label: 'Tipo', tipo: 'select', opciones: ['Eléctrico','Plomería'] },
+                { k: 'desc', label: 'Descripción del material', tipo: 'text' },
+                { k: 'unidad', label: 'Unidad', tipo: 'text' },
+                { k: 'cantidad', label: 'Cantidad', tipo: 'number' } ] }
         };
 
         function escAttr(v) { return String(v ?? '').replace(/"/g, '&quot;'); }
@@ -1532,11 +1657,12 @@
                 const val = obj[c.k] ?? '';
                 html += '<div>';
                 html += `<label class="block text-sm font-medium text-slate-700 mb-1">${c.label}</label>`;
-                if (c.tipo === 'select') {
-                    let ops = c.opciones.slice();
+                if (c.tipo === 'select' || c.tipo === 'obra') {
+                    let ops = c.tipo === 'obra' ? appData.obras.map(o => o.nombre) : c.opciones.slice();
+                    if (c.tipo === 'obra') ops.unshift('');
                     if (val && !ops.includes(val)) ops.unshift(val);
                     html += `<select data-k="${c.k}" class="editor-field w-full rounded-md border-slate-300 border p-2 text-sm bg-white">` +
-                        ops.map(o => `<option value="${escAttr(o)}" ${o === val ? 'selected' : ''}>${o}</option>`).join('') + `</select>`;
+                        ops.map(o => `<option value="${escAttr(o)}" ${o === val ? 'selected' : ''}>${o || '— Sin obra —'}</option>`).join('') + `</select>`;
                 } else {
                     const t = c.tipo === 'number' ? 'number' : 'text';
                     const step = c.tipo === 'number' ? 'step="any"' : '';
@@ -2149,13 +2275,14 @@
                 html += `<tr>
                     <td class="font-medium text-slate-800">${a.herr}</td>
                     <td class="font-semibold text-slate-700"><i class="fa-solid fa-user-gear text-slate-400 mr-1"></i> ${a.tecnico}</td>
+                    <td class="text-sm text-slate-600">${a.obra || '—'}</td>
                     <td class="text-sm">${a.f_entrega}</td>
                     <td class="text-sm text-slate-500">${a.f_retorno}</td>
                     <td><span class="px-2 py-1 rounded text-xs font-medium ${badge}">${a.estatus}</span></td>
                     <td>${accionesBtns('herramientas_asig', i)}</td>
                 </tr>`;
             });
-            document.getElementById('tb-asig-herramientas').innerHTML = html || '<tr><td colspan="6" class="text-center text-slate-400 py-6">No hay herramientas asignadas.</td></tr>';
+            document.getElementById('tb-asig-herramientas').innerHTML = html || '<tr><td colspan="7" class="text-center text-slate-400 py-6">No hay herramientas asignadas.</td></tr>';
         }
 
         function renderUbiHerramientas() {
@@ -2172,10 +2299,167 @@
             document.getElementById('tb-ubi-herramientas').innerHTML = html;
         }
 
+        /* ====== Inventario de Obra ====== */
+        let filtroInvObra = 'Todas';
+
+        function opcionesObrasHTML(incluirBlanco, incluirTodas, seleccion) {
+            let html = '';
+            if (incluirTodas) html += `<option value="Todas">Todas las obras</option>`;
+            if (incluirBlanco) html += `<option value="">— Selecciona una obra —</option>`;
+            appData.obras.forEach(o => {
+                html += `<option value="${escAttr(o.nombre)}" ${o.nombre === seleccion ? 'selected' : ''}>${o.nombre}</option>`;
+            });
+            return html;
+        }
+
+        function initInvObra() {
+            document.getElementById('io-obra').innerHTML = opcionesObrasHTML(true, false, '');
+            document.getElementById('io-filtro').innerHTML = opcionesObrasHTML(false, true, '');
+            document.getElementById('io-filtro').value = filtroInvObra;
+            document.getElementById('io-fecha').valueAsDate = new Date();
+            document.getElementById('invobra-filas').innerHTML = '';
+            agregarFilaInvObra();
+            renderInvObra();
+        }
+
+        function agregarFilaInvObra() {
+            const cont = document.getElementById('invobra-filas');
+            const fila = document.createElement('div');
+            fila.className = 'io-fila border border-slate-200 rounded-lg p-3';
+            fila.innerHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-2 md:items-end">
+                    <div class="md:col-span-3">
+                        <label class="block md:hidden text-xs font-medium text-slate-500 mb-1">Tipo</label>
+                        <select class="w-full p-2 border border-slate-300 rounded text-sm bg-white io-tipo">
+                            <option value="Eléctrico">Eléctrico</option>
+                            <option value="Plomería">Plomería</option>
+                        </select>
+                    </div>
+                    <div class="md:col-span-4">
+                        <label class="block md:hidden text-xs font-medium text-slate-500 mb-1">Descripción</label>
+                        <input type="text" class="w-full p-2 border border-slate-300 rounded text-sm io-desc" placeholder="Descripción del material">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block md:hidden text-xs font-medium text-slate-500 mb-1">Unidad</label>
+                        <input type="text" class="w-full p-2 border border-slate-300 rounded text-sm io-uni" placeholder="pza, m…">
+                    </div>
+                    <div class="md:col-span-1">
+                        <label class="block md:hidden text-xs font-medium text-slate-500 mb-1">Cant.</label>
+                        <input type="number" step="any" min="0" class="w-full p-2 border border-slate-300 rounded text-sm io-cant" value="1">
+                    </div>
+                    <div class="md:col-span-2 flex items-center gap-2">
+                        <input type="file" accept="application/pdf" class="hidden io-file" onchange="adjuntarPdfFila(this)">
+                        <button type="button" onclick="this.parentElement.querySelector('.io-file').click()" class="io-pdf-btn flex-1 text-xs px-2 py-2 border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-50 transition truncate"><i class="fa-solid fa-paperclip mr-1"></i> PDF</button>
+                        <button type="button" onclick="quitarFilaInvObra(this)" class="text-red-400 hover:text-red-600 flex-shrink-0" title="Quitar"><i class="fa-solid fa-trash-can"></i></button>
+                    </div>
+                </div>`;
+            cont.appendChild(fila);
+        }
+
+        function quitarFilaInvObra(btn) {
+            const fila = btn.closest('.io-fila');
+            const cont = document.getElementById('invobra-filas');
+            if (cont.querySelectorAll('.io-fila').length > 1) fila.remove();
+            else { // si es la única, solo límpiala
+                fila.querySelector('.io-desc').value = '';
+                fila.querySelector('.io-uni').value = '';
+                fila.querySelector('.io-cant').value = '1';
+                const b = fila.querySelector('.io-pdf-btn'); b.dataset.archivoId = ''; b.dataset.archivoNombre = '';
+                b.innerHTML = '<i class="fa-solid fa-paperclip mr-1"></i> PDF';
+            }
+        }
+
+        function adjuntarPdfFila(inputEl) {
+            const file = inputEl.files[0];
+            if (!file) return;
+            const btn = inputEl.parentElement.querySelector('.io-pdf-btn');
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-1"></i> Subiendo…';
+            subirArchivo(file).then(res => {
+                btn.dataset.archivoId = res.id;
+                btn.dataset.archivoNombre = res.nombre;
+                btn.innerHTML = '<i class="fa-solid fa-file-pdf text-red-500 mr-1"></i> ' + res.nombre;
+            }).catch(err => {
+                btn.innerHTML = '<i class="fa-solid fa-paperclip mr-1"></i> PDF';
+                mostrarToast(err.message || 'No se pudo adjuntar el PDF', true);
+            });
+            inputEl.value = '';
+        }
+
+        function guardarInvObra() {
+            const obra = document.getElementById('io-obra').value;
+            const fechaStr = document.getElementById('io-fecha').value;
+            if (!obra) { mostrarToast('Selecciona una obra', true); return; }
+            const fecha = fechaStr ? new Date(fechaStr + 'T00:00:00').toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
+            let agregados = 0;
+            document.querySelectorAll('#invobra-filas .io-fila').forEach(fila => {
+                const desc = fila.querySelector('.io-desc').value.trim();
+                if (!desc) return;
+                const btn = fila.querySelector('.io-pdf-btn');
+                appData.inventarioObra.unshift({
+                    id: 'IO-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+                    obra, fecha,
+                    tipo: fila.querySelector('.io-tipo').value,
+                    desc,
+                    unidad: fila.querySelector('.io-uni').value.trim(),
+                    cantidad: parseFloat(fila.querySelector('.io-cant').value) || 0,
+                    archivoId: btn.dataset.archivoId || '',
+                    archivoNombre: btn.dataset.archivoNombre || ''
+                });
+                agregados++;
+            });
+            if (agregados === 0) { mostrarToast('Agrega al menos un material con descripción', true); return; }
+            persistir();
+            mostrarToast(agregados + ' material(es) guardado(s) en ' + obra);
+            document.getElementById('invobra-filas').innerHTML = '';
+            agregarFilaInvObra();
+            renderInvObra();
+        }
+
+        function renderInvObra() {
+            const filtro = document.getElementById('io-filtro') ? document.getElementById('io-filtro').value : 'Todas';
+            filtroInvObra = filtro;
+            const lista = appData.inventarioObra.filter(r => filtro === 'Todas' || r.obra === filtro);
+            let html = '';
+            lista.forEach(r => {
+                const idx = appData.inventarioObra.indexOf(r);
+                const pdf = r.archivoId
+                    ? `<button onclick="abrirArchivo('${r.archivoId}')" class="text-brand-600 hover:underline text-xs"><i class="fa-solid fa-file-pdf text-red-500 mr-1"></i>Ver</button>`
+                    : '<span class="text-slate-300">—</span>';
+                html += `<tr>
+                    <td class="text-slate-600">${r.obra}</td>
+                    <td class="text-slate-500">${r.fecha || '—'}</td>
+                    <td><span class="px-2 py-1 rounded text-xs font-medium ${catCls(r.tipo)}">${r.tipo}</span></td>
+                    <td class="font-medium text-slate-800">${r.desc}</td>
+                    <td>${r.unidad || '—'}</td>
+                    <td class="font-bold text-slate-700">${r.cantidad}</td>
+                    <td>${pdf}</td>
+                    <td><div class="flex items-center justify-end gap-3">
+                        <button type="button" onclick="abrirEditor('inventarioObra',${idx})" class="text-slate-400 hover:text-brand-600" title="Editar"><i class="fa-solid fa-pen-to-square"></i></button>
+                        <button type="button" onclick="eliminarInvObra(${idx})" class="text-slate-400 hover:text-red-600" title="Eliminar"><i class="fa-solid fa-trash-can"></i></button>
+                    </div></td>
+                </tr>`;
+            });
+            document.getElementById('tb-invobra').innerHTML = html || '<tr><td colspan="8" class="text-center text-slate-400 py-6">Sin registros de inventario de obra.</td></tr>';
+        }
+
+        function eliminarInvObra(index) {
+            const r = appData.inventarioObra[index];
+            if (!r) return;
+            confirmarAccion('¿Eliminar "' + r.desc + '"? Esta acción no se puede deshacer.', () => {
+                if (r.archivoId) eliminarArchivo(r.archivoId);
+                appData.inventarioObra.splice(index, 1);
+                persistir();
+                mostrarToast('Registro eliminado');
+                renderInvObra();
+            });
+        }
+
         /* ====== Detalle de obra ====== */
+        let obraDetalleActual = null;
         function verObraDetalle(id) {
             const o = appData.obras.find(x => x.id === id);
             if (!o) return;
+            obraDetalleActual = o.nombre;
             document.getElementById('obra-det-title').innerText = o.id + ' · ' + o.nombre;
 
             // Movimientos relacionados (por nombre de obra)
@@ -2188,13 +2472,35 @@
                     <td class="font-medium">${m.cant}</td>
                 </tr>`).join('') : '<tr><td colspan="4" class="text-center text-slate-400 py-4">Sin movimientos de material.</td></tr>';
 
-            // Herramientas en esta obra
-            const herrs = appData.herramientas_ubi.filter(h => h.ubi === o.nombre);
-            let herrHtml = herrs.length ? herrs.map(h => `
+            // Asignaciones de herramientas de esta obra
+            const asigs = appData.herramientas_asig.filter(a => (a.obra || '') === o.nombre);
+            let asigHtml = asigs.length ? asigs.map(a => `
                 <tr>
-                    <td>${h.herr}</td>
-                    <td>${h.resp}</td>
-                </tr>`).join('') : '<tr><td colspan="2" class="text-center text-slate-400 py-4">Sin herramientas asignadas.</td></tr>';
+                    <td>${a.herr}</td>
+                    <td>${a.tecnico}</td>
+                    <td><span class="px-2 py-0.5 rounded text-xs font-medium ${a.estatus === 'En Uso' ? 'bg-brand-100 text-brand-700' : 'bg-slate-100 text-slate-600'}">${a.estatus}</span></td>
+                </tr>`).join('') : '<tr><td colspan="3" class="text-center text-slate-400 py-4">Sin herramientas asignadas.</td></tr>';
+
+            // Inventario de obra de esta obra
+            const inv = appData.inventarioObra.filter(r => r.obra === o.nombre);
+            let invHtml = inv.length ? inv.map(r => `
+                <tr>
+                    <td class="text-slate-500">${r.fecha || '—'}</td>
+                    <td><span class="px-2 py-0.5 rounded text-xs font-medium ${catCls(r.tipo)}">${r.tipo}</span></td>
+                    <td class="font-medium">${r.desc}</td>
+                    <td>${r.cantidad} ${r.unidad || ''}</td>
+                    <td>${r.archivoId ? `<button onclick="abrirArchivo('${r.archivoId}')" class="text-brand-600 hover:underline text-xs"><i class="fa-solid fa-file-pdf text-red-500 mr-1"></i>Ver</button>` : '—'}</td>
+                </tr>`).join('') : '<tr><td colspan="5" class="text-center text-slate-400 py-4">Sin inventario registrado.</td></tr>';
+
+            // Planos (PDF) de esta obra
+            const planos = appData.planos.filter(p => p.obra === o.nombre);
+            let planosHtml = planos.length ? planos.map(p => {
+                const idx = appData.planos.indexOf(p);
+                return `<div class="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+                    <button onclick="abrirArchivo('${p.archivoId}')" class="text-sm text-slate-700 hover:text-brand-600 flex items-center min-w-0"><i class="fa-solid fa-file-pdf text-red-500 mr-2 flex-shrink-0"></i><span class="truncate">${p.nombre}</span></button>
+                    <button onclick="eliminarPlano(${idx})" class="text-slate-400 hover:text-red-600 flex-shrink-0 ml-2" title="Eliminar"><i class="fa-solid fa-trash-can"></i></button>
+                </div>`;
+            }).join('') : '<p class="text-sm text-slate-400">Sin planos adjuntos.</p>';
 
             document.getElementById('obra-detalle-body').innerHTML = `
                 <div class="grid grid-cols-2 gap-4 mb-5">
@@ -2203,15 +2509,58 @@
                     <div><p class="text-xs text-slate-400 uppercase font-semibold">Estado</p><p class="font-medium text-slate-800">${o.estado}</p></div>
                     <div><p class="text-xs text-slate-400 uppercase font-semibold">Fecha de inicio</p><p class="font-medium text-slate-800">${o.fecha}</p></div>
                 </div>
+
+                <div class="flex items-center justify-between mb-2">
+                    <h4 class="font-bold text-slate-700 text-sm flex items-center"><i class="fa-solid fa-file-pdf text-brand-500 mr-2"></i> Planos (PDF)</h4>
+                    <input type="file" id="plano-file" accept="application/pdf" class="hidden" onchange="subirPlano(this)">
+                    <button type="button" onclick="document.getElementById('plano-file').click()" class="text-xs bg-brand-50 hover:bg-brand-100 text-brand-700 px-3 py-1.5 rounded-lg border border-brand-200 font-medium"><i class="fa-solid fa-plus mr-1"></i> Agregar plano</button>
+                </div>
+                <div class="space-y-2 mb-5" id="obra-planos">${planosHtml}</div>
+
+                <h4 class="font-bold text-slate-700 text-sm mb-2 flex items-center"><i class="fa-solid fa-truck-ramp-box text-brand-500 mr-2"></i> Inventario de obra</h4>
+                <div class="table-container border border-slate-200 mb-5">
+                    <table><thead><tr><th>Fecha</th><th>Tipo</th><th>Material</th><th>Cant.</th><th>PDF</th></tr></thead><tbody>${invHtml}</tbody></table>
+                </div>
+
                 <h4 class="font-bold text-slate-700 text-sm mb-2 flex items-center"><i class="fa-solid fa-right-left text-brand-500 mr-2"></i> Movimientos de material</h4>
                 <div class="table-container border border-slate-200 mb-5">
                     <table><thead><tr><th>Fecha</th><th>Tipo</th><th>Material</th><th>Cant.</th></tr></thead><tbody>${movHtml}</tbody></table>
                 </div>
-                <h4 class="font-bold text-slate-700 text-sm mb-2 flex items-center"><i class="fa-solid fa-screwdriver-wrench text-brand-500 mr-2"></i> Herramientas en obra</h4>
+
+                <h4 class="font-bold text-slate-700 text-sm mb-2 flex items-center"><i class="fa-solid fa-screwdriver-wrench text-brand-500 mr-2"></i> Herramientas asignadas</h4>
                 <div class="table-container border border-slate-200">
-                    <table><thead><tr><th>Herramienta</th><th>Responsable</th></tr></thead><tbody>${herrHtml}</tbody></table>
+                    <table><thead><tr><th>Herramienta</th><th>Técnico</th><th>Estatus</th></tr></thead><tbody>${asigHtml}</tbody></table>
                 </div>`;
             openModal('modal-obra-detalle');
+        }
+
+        function subirPlano(inputEl) {
+            const file = inputEl.files[0];
+            if (!file || !obraDetalleActual) return;
+            const id = obraDetalleActual;
+            mostrarToast('Subiendo plano…');
+            subirArchivo(file).then(res => {
+                appData.planos.unshift({ id: 'PL-' + Date.now(), obra: id, nombre: res.nombre, archivoId: res.id });
+                persistir();
+                mostrarToast('Plano agregado');
+                const oid = (appData.obras.find(x => x.nombre === id) || {}).id;
+                if (oid) verObraDetalle(oid);
+            }).catch(err => mostrarToast(err.message || 'No se pudo subir el plano', true));
+            inputEl.value = '';
+        }
+
+        function eliminarPlano(index) {
+            const p = appData.planos[index];
+            if (!p) return;
+            confirmarAccion('¿Eliminar el plano "' + p.nombre + '"?', () => {
+                if (p.archivoId) eliminarArchivo(p.archivoId);
+                const obraNombre = p.obra;
+                appData.planos.splice(index, 1);
+                persistir();
+                mostrarToast('Plano eliminado');
+                const oid = (appData.obras.find(x => x.nombre === obraNombre) || {}).id;
+                if (oid) verObraDetalle(oid);
+            });
         }
 
         /* ====== Altas de catálogo ====== */
