@@ -1,0 +1,36 @@
+# Despliegue automático a Firebase Hosting.
+# Cada vez que se sube código a la rama main, la app se publica sola en
+# https://administradorahhm.web.app  (ya no hace falta correr "firebase deploy" a mano).
+#
+# CONFIGURACIÓN (una sola vez):
+#   1. En tu PC:  firebase login:ci      → copia el token que imprime.
+#   2. En GitHub: repositorio → Settings → Secrets and variables → Actions
+#      → New repository secret → Name: FIREBASE_TOKEN → Value: (pega el token) → Add secret.
+# Después de eso, cada cambio en main se publica automáticamente.
+
+name: Desplegar a Firebase Hosting
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:   # permite lanzarlo a mano desde la pestaña Actions
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v4
+
+      - name: Instalar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Instalar Firebase CLI
+        run: npm install -g firebase-tools
+
+      - name: Publicar (solo Hosting)
+        run: firebase deploy --only hosting --project administradorahhm --non-interactive
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}

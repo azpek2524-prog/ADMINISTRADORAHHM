@@ -1196,43 +1196,73 @@
         }
 
         /* ===== Archivos (PDF) guardados en Firestore, sin costo =====
-           Cada archivo va en su propio documento 'archivos/{id}' como base64.
-           Límite ~700 KB por archivo (límite de Firestore por documento). */
-        const LIMITE_ARCHIVO = 700 * 1024;
+           Un documento de Firestore admite máximo 1 MiB, así que cada archivo
+           se parte en TROZOS: un documento 'archivos/{id}' con los datos del
+           archivo (nombre, tamaño, número de trozos) y cada trozo en su propio
+           documento 'archivos/{id}/partes/{n}'. Al abrir se juntan de nuevo.
+           Compatible con archivos antiguos (guardados en un solo documento). */
+        const LIMITE_ARCHIVO = 5 * 1024 * 1024;   // 5 MB por PDF
+        const TAM_TROZO = 500 * 1024;             // ~500 KB de texto por documento (bajo el límite de 1 MiB)
+
         function subirArchivo(file) {
             return new Promise((resolve, reject) => {
                 if (!db) { reject(new Error('Sin conexión a la nube')); return; }
                 if (file.size > LIMITE_ARCHIVO) {
-                    reject(new Error('El archivo pesa ' + Math.round(file.size / 1024) + ' KB. El máximo es ~700 KB; comprime el PDF e inténtalo de nuevo.'));
+                    reject(new Error('El archivo pesa ' + (Math.round(file.size / 1024 / 1024 * 10) / 10) + ' MB. El máximo es 5 MB; comprime el PDF e inténtalo de nuevo.'));
                     return;
                 }
                 const reader = new FileReader();
                 reader.onload = () => {
-                    db.collection('archivos').add({
+                    const dataUrl = reader.result;
+                    const trozos = [];
+                    for (let i = 0; i < dataUrl.length; i += TAM_TROZO) trozos.push(dataUrl.slice(i, i + TAM_TROZO));
+                    const ref = db.collection('archivos').doc();
+                    ref.set({
                         nombre: file.name, tipo: file.type || 'application/pdf',
-                        data: reader.result, tam: file.size, creado: Date.now()
-                    }).then(ref => resolve({ id: ref.id, nombre: file.name }))
+                        tam: file.size, trozos: trozos.length, creado: Date.now()
+                    }).then(() => Promise.all(
+                        trozos.map((t, i) => ref.collection('partes').doc(String(i)).set({ data: t }))
+                    )).then(() => resolve({ id: ref.id, nombre: file.name }))
                       .catch(reject);
                 };
                 reader.onerror = () => reject(new Error('No se pudo leer el archivo'));
                 reader.readAsDataURL(file);
             });
         }
+        function abrirDataUrl(dataUrl) {
+            return fetch(dataUrl).then(r => r.blob()).then(blob => {
+                const url = URL.createObjectURL(blob);
+                window.open(url, '_blank');
+                setTimeout(() => URL.revokeObjectURL(url), 60000);
+            });
+        }
         function abrirArchivo(archivoId) {
             if (!db) return;
             mostrarToast('Abriendo archivo…');
-            db.collection('archivos').doc(archivoId).get().then(snap => {
+            const ref = db.collection('archivos').doc(archivoId);
+            ref.get().then(snap => {
                 if (!snap.exists) { mostrarToast('Archivo no encontrado', true); return; }
-                fetch(snap.data().data).then(r => r.blob()).then(blob => {
-                    const url = URL.createObjectURL(blob);
-                    window.open(url, '_blank');
-                    setTimeout(() => URL.revokeObjectURL(url), 60000);
+                const meta = snap.data();
+                if (meta.data) return abrirDataUrl(meta.data); // formato antiguo (un solo documento)
+                const n = meta.trozos || 0;
+                const gets = [];
+                for (let i = 0; i < n; i++) gets.push(ref.collection('partes').doc(String(i)).get());
+                return Promise.all(gets).then(snaps => {
+                    const dataUrl = snaps.map(s => (s.exists ? s.data().data : '')).join('');
+                    return abrirDataUrl(dataUrl);
                 });
             }).catch(err => { console.error(err); mostrarToast('No se pudo abrir el archivo', true); });
         }
         function eliminarArchivo(archivoId) {
             if (!db || !archivoId) return;
-            db.collection('archivos').doc(archivoId).delete().catch(e => console.error(e));
+            const ref = db.collection('archivos').doc(archivoId);
+            ref.get().then(snap => {
+                const meta = snap.exists ? snap.data() : null;
+                const n = (meta && meta.trozos) ? meta.trozos : 0;
+                const dels = [];
+                for (let i = 0; i < n; i++) dels.push(ref.collection('partes').doc(String(i)).delete());
+                return Promise.all(dels);
+            }).then(() => ref.delete()).catch(e => console.error(e));
         }
 
         /*

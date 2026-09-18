@@ -101,21 +101,36 @@ Objeto global `appData` con estas colecciones (todas se guardan en Firestore `hh
 
 ## 7. Despliegue (cómo publicar cambios)
 
-El código en GitHub **no se publica solo**. El dueño publica desde su carpeta local
-(clon de `main`, llamada `HHM-APP` en su PC):
+**Despliegue automático (recomendado).** Hay un workflow de GitHub Actions
+(`.github/workflows/deploy.yml`): cada `push` a `main` publica la app sola en
+`https://administradorahhm.web.app`. Requiere configurar **una sola vez** el secreto
+`FIREBASE_TOKEN` en el repo (Settings → Secrets and variables → Actions), obtenido con
+`firebase login:ci`. Con esto, subir código a `main` es suficiente para que se vea en vivo.
+
+**Despliegue manual (alternativa / respaldo).** Desde la carpeta local (clon de `main`,
+llamada `HHM-APP` en la PC del dueño):
 
 ```powershell
 git pull
 firebase deploy --only hosting --project administradorahhm
 ```
 
-- Los **datos** (obras, cotizaciones, etc.) sí se sincronizan solos vía Firebase; solo
-  el **código** requiere deploy.
-- El `index.html` está configurado como **no-cache**, así que tras `deploy` los cambios
+- Los **datos** (obras, cotizaciones, etc.) sí se sincronizan solos vía Firebase; el
+  **código** se publica con el workflow automático (o el deploy manual de respaldo).
+- El `index.html` está configurado como **no-cache**, así que tras publicar los cambios
   se ven al recargar.
-- Requisitos en la máquina: Node.js, `npm install -g firebase-tools`, `firebase login`
-  (con la cuenta de Google dueña del proyecto). En Windows quizá haga falta
-  `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`.
+- Requisitos para el deploy manual: Node.js, `npm install -g firebase-tools`,
+  `firebase login` (con la cuenta de Google dueña del proyecto). En Windows quizá haga
+  falta `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`.
+
+### Archivos PDF (planos, facturas de inventario)
+- Se guardan **gratis** en Firestore (plan Spark), sin usar Storage ni plan Blaze.
+- Como un documento de Firestore admite máx. 1 MiB, cada PDF se **parte en trozos**:
+  un documento `archivos/{id}` (nombre, tamaño, nº de trozos) y cada trozo en
+  `archivos/{id}/partes/{n}`. Al abrir se reconstruye. Funciones: `subirArchivo`,
+  `abrirArchivo`, `eliminarArchivo` en `index.html`.
+- **Límite actual: 5 MB por PDF** (constante `LIMITE_ARCHIVO`). Compatible con archivos
+  antiguos guardados en un solo documento (campo `data`).
 
 ## 8. Reglas y convenciones para trabajar
 
