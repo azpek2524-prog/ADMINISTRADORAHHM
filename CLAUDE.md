@@ -44,7 +44,8 @@ Es una **aplicación web de una sola página** (todo vive en `index.html`). Secc
   stock de Bodega** (ver §9). Se elige fecha, material (de Bodega) y obra (de las registradas).
 - **Catálogo de Herramientas** (el código lo escribe el usuario; la columna Asignación se
   calcula desde Asignaciones), **Asignaciones a Personal** (la herramienta se elige de una
-  lista del Catálogo, campo tipo `herramienta` en `abrirEditor`), **Ubicación de Herramientas**.
+  lista del Catálogo, campo tipo `herramienta` en `abrirEditor`; las fechas de entrega/retorno
+  usan calendario, campo tipo `fecha`), **Ubicación de Herramientas**.
 
 **Ocultas del menú (a petición del cliente, no las usa):** *Catálogo de Precios de Venta* y
 *Catálogo de Materiales*. Sus vistas y datos siguen en el código (no se borraron); el
@@ -175,6 +176,8 @@ firebase deploy --only hosting --project administradorahhm
   mayúsculas.
 - **Fechas por defecto con `hoyISO()`** (fecha local); no usar `valueAsDate = new Date()`,
   que usa UTC y en México muestra el día siguiente después de las 6 pm.
+  Los campos tipo `fecha` del editor guardan el texto (`"24 sep 2026"`) y `<campo>ISO`;
+  `isoDesdeTexto()` entiende las fechas viejas escritas a mano (`"01/Jun/2026"`).
 - **Toda la base en un solo documento Firestore:** simple y suficiente para el volumen
   actual (cientos de registros). Last-write-wins.
 - **Tailwind/Font Awesome por CDN:** requieren internet; en el navegador del usuario

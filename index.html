@@ -1629,8 +1629,8 @@
                 { k: 'herr', label: 'Herramienta', tipo: 'herramienta' },
                 { k: 'tecnico', label: 'Asignado a (Técnico)', tipo: 'text' },
                 { k: 'obra', label: 'Obra', tipo: 'obra' },
-                { k: 'f_entrega', label: 'Fecha Entrega', tipo: 'text' },
-                { k: 'f_retorno', label: 'Fecha Retorno Esp.', tipo: 'text' },
+                { k: 'f_entrega', label: 'Fecha Entrega', tipo: 'fecha', hoy: true },
+                { k: 'f_retorno', label: 'Fecha Retorno Esp.', tipo: 'fecha' },
                 { k: 'estatus', label: 'Estatus', tipo: 'select', opciones: ['En Uso','Mantenimiento','Devuelto'] } ] },
             herramientas_ubi: { titulo: 'Ubicación', arr: () => appData.herramientas_ubi, render: () => renderUbiHerramientas(), campos: [
                 { k: 'herr', label: 'Herramienta', tipo: 'text' },
@@ -1684,6 +1684,11 @@
                     // Asignación antigua cuya herramienta no está en el catálogo: se conserva
                     if (!encontrado) ops += `<option value="${escAttr(val)}" selected>${val}</option>`;
                     html += `<select data-k="${c.k}" class="editor-field w-full rounded-md border-slate-300 border p-2 text-sm bg-white">${ops}</select>`;
+                } else if (c.tipo === 'fecha') {
+                    // Calendario; entiende fechas viejas escritas a mano ("01/Jun/2026")
+                    let iso = obj[c.k + 'ISO'] || isoDesdeTexto(val);
+                    if (!iso && esNuevo && c.hoy) iso = hoyISO();
+                    html += `<input data-k="${c.k}" type="date" value="${iso}" data-orig="${escAttr(val)}" class="editor-field w-full rounded-md border-slate-300 border p-2 text-sm focus:border-brand-500">`;
                 } else if (c.tipo === 'select' || c.tipo === 'obra') {
                     let ops = c.tipo === 'obra' ? appData.obras.map(o => o.nombre) : c.opciones.slice();
                     if (c.tipo === 'obra') ops.unshift('');
@@ -1716,6 +1721,16 @@
             document.querySelectorAll('#editor-campos .editor-field').forEach(el => {
                 const k = el.dataset.k;
                 const campo = col.campos.find(c => c.k === k);
+                if (campo.tipo === 'fecha') {
+                    if (el.value) { obj[k] = fechaDesdeISO(el.value); obj[k + 'ISO'] = el.value; }
+                    else {
+                        // Vacío: si antes había un texto que no era fecha (p. ej. "—"), se conserva
+                        const orig = el.dataset.orig || '';
+                        obj[k] = isoDesdeTexto(orig) ? '' : orig;
+                        delete obj[k + 'ISO'];
+                    }
+                    return;
+                }
                 let v = el.value;
                 if (campo.tipo === 'number') v = parseFloat(v) || 0;
                 else v = v.trim();
@@ -1827,6 +1842,18 @@
         }
         function fechaDesdeISO(iso) {
             return new Date(iso + 'T00:00:00').toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
+        }
+        // Convierte una fecha escrita ("01/Jun/2026", "15 sep 2026", "15/06/2026") a "2026-06-15"; '' si no se entiende.
+        function isoDesdeTexto(t) {
+            const s = String(t || '').toLowerCase().trim();
+            if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+            const pad = n => String(n).padStart(2, '0');
+            let m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+            if (m) return m[3] + '-' + pad(m[2]) + '-' + pad(m[1]);
+            m = s.match(/^(\d{1,2})[\s\/.-]+([a-záéíóú]+)\.?[\s\/.-]+(\d{4})$/);
+            if (!m) return '';
+            const mes = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'].indexOf(m[2].slice(0, 3));
+            return mes < 0 ? '' : m[3] + '-' + pad(mes + 1) + '-' + pad(m[1]);
         }
 
         // Efecto sobre el stock de bodega: Entrada/Devolución suman, Salida resta.
@@ -2479,8 +2506,8 @@
                     <td class="font-medium text-slate-800">${a.herr}</td>
                     <td class="font-semibold text-slate-700"><i class="fa-solid fa-user-gear text-slate-400 mr-1"></i> ${a.tecnico}</td>
                     <td class="text-sm text-slate-600">${a.obra || '—'}</td>
-                    <td class="text-sm">${a.f_entrega}</td>
-                    <td class="text-sm text-slate-500">${a.f_retorno}</td>
+                    <td class="text-sm">${a.f_entrega || '—'}</td>
+                    <td class="text-sm text-slate-500">${a.f_retorno || '—'}</td>
                     <td><span class="px-2 py-1 rounded text-xs font-medium ${badge}">${a.estatus}</span></td>
                     <td>${accionesBtns('herramientas_asig', i)}</td>
                 </tr>`;
