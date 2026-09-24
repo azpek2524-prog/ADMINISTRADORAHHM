@@ -33,13 +33,18 @@ Es una **aplicación web de una sola página** (todo vive en `index.html`). Secc
 - **Cotizador** — genera cotizaciones profesionales; los conceptos se eligen del
   Catálogo de Precios de Venta (precio y unidad automáticos) o como "concepto libre".
   Calcula subtotal + IVA (16%) + total. Exporta a **PDF con membrete HHM** (vía impresión).
+  Encabezado del PDF (formato pedido por el cliente): a la izquierda **CLIENTE** (nombre +
+  dirección); a la derecha **"Atendido por"** con nombre, teléfono y correo tomados de
+  **Datos de la empresa** (`empresa.contacto`, `telefono`, `email`). El cliente ya no lleva
+  teléfono/correo propios en el formulario.
 - **Historial de Cotizaciones** — cotizaciones guardadas, con desglose, PDF y estado.
 - **Inventario de Bodega** — código, descripción y stock actual; filtro por prefijo del
   código (**CAB** = cable, **HER** = herramienta). Ya no hay stock mínimo ni estado.
 - **Movimientos de inventario** — entradas/salidas/consumos/devoluciones, **conectados al
   stock de Bodega** (ver §9). Se elige fecha, material (de Bodega) y obra (de las registradas).
 - **Catálogo de Herramientas** (el código lo escribe el usuario; la columna Asignación se
-  calcula desde Asignaciones), **Asignaciones a Personal**, **Ubicación de Herramientas**.
+  calcula desde Asignaciones), **Asignaciones a Personal** (la herramienta se elige de una
+  lista del Catálogo, campo tipo `herramienta` en `abrirEditor`), **Ubicación de Herramientas**.
 
 **Ocultas del menú (a petición del cliente, no las usa):** *Catálogo de Precios de Venta* y
 *Catálogo de Materiales*. Sus vistas y datos siguen en el código (no se borraron); el
