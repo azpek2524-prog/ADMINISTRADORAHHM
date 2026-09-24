@@ -22,23 +22,30 @@ de los datos reales).
 
 Es una **aplicación web de una sola página** (todo vive en `index.html`). Secciones:
 
-- **Inicio / Dashboard** — resumen: obras activas, valor de inventario, materiales
-  bajo mínimo, herramientas en campo, alertas.
+- **Inicio / Dashboard** — resumen: obras activas, artículos en bodega, artículos sin
+  stock (stock ≤ 0), herramientas en campo, alertas de artículos sin stock.
 - **Datos de la empresa** — nombre, RFC, teléfono, correo, dirección (alimentan el PDF).
 - **Obras / Proyectos** — tarjetas con estado (Activa/Pendiente/Completada/Pausada),
-  cliente, responsable. Botón "Ver Detalle" muestra movimientos y herramientas de esa obra.
+  cliente, responsable. "Ver Detalle" muestra planos (PDF), entregas de material (PDF),
+  movimientos y herramientas asignadas a esa obra.
+- **Inventario de Obra** — "entregas" de material a una obra en una fecha (elegida a
+  mano), cada una convertible a **PDF** (membrete HHM, vía impresión) y editable.
 - **Cotizador** — genera cotizaciones profesionales; los conceptos se eligen del
   Catálogo de Precios de Venta (precio y unidad automáticos) o como "concepto libre".
   Calcula subtotal + IVA (16%) + total. Exporta a **PDF con membrete HHM** (vía impresión).
 - **Historial de Cotizaciones** — cotizaciones guardadas, con desglose, PDF y estado.
-- **Catálogo de Precios de Venta** — lista de cobro al cliente (material + mano de obra).
-- **Catálogo de Materiales** — costo de referencia y stock mínimo.
-- **Inventario de Bodega** — stock actual vs. mínimo; el **Estado (Óptimo/Reabastecer)
-  es automático** (se calcula: stock <= mínimo → Reabastecer).
-- **Movimientos de inventario** — entradas/salidas/consumos/devoluciones.
-- **Catálogo de Herramientas**, **Asignaciones a Personal**, **Ubicación de Herramientas**.
+- **Inventario de Bodega** — código, descripción y stock actual; filtro por prefijo del
+  código (**CAB** = cable, **HER** = herramienta). Ya no hay stock mínimo ni estado.
+- **Movimientos de inventario** — entradas/salidas/consumos/devoluciones, **conectados al
+  stock de Bodega** (ver §9). Se elige fecha, material (de Bodega) y obra (de las registradas).
+- **Catálogo de Herramientas** (el código lo escribe el usuario; la columna Asignación se
+  calcula desde Asignaciones), **Asignaciones a Personal**, **Ubicación de Herramientas**.
 
-Cada una de las 9 secciones de datos tiene **Agregar, Editar y Eliminar** (con confirmación).
+**Ocultas del menú (a petición del cliente, no las usa):** *Catálogo de Precios de Venta* y
+*Catálogo de Materiales*. Sus vistas y datos siguen en el código (no se borraron); el
+Cotizador todavía ofrece los precios de venta existentes en su lista de conceptos.
+
+Las secciones de datos tienen **Agregar, Editar y Eliminar** (con confirmación).
 
 ## 3. Objetivo (qué se busca conseguir)
 
@@ -152,7 +159,17 @@ firebase deploy --only hosting --project administradorahhm
 - **Login por correo/contraseña en vez de Google:** con Google + pantalla completa
   (PWA standalone) en iPhone, el inicio de sesión se rompe (la sesión no vuelve tras
   el redirect de Google). Correo/contraseña sí funciona en pantalla completa.
-- **Estado de Bodega automático:** se calcula desde stock vs. mínimo; no se captura a mano.
+- **Movimientos conectados al stock de Bodega:** Entrada a Bodega y Devolución a Bodega
+  **suman**, Salida a Obra **resta**, Consumo en Obra **no cambia** la bodega (ese material
+  ya salió con una Salida). Cada movimiento nuevo guarda `delta` (lo que movió el stock)
+  para revertirlo al editar/eliminar; no se permite dejar stock negativo. Los movimientos
+  antiguos (sin `delta`) no tocan el stock. Funciones: `guardarMovimiento`,
+  `editarMovimiento`, `eliminarMovimiento`, `deltaMovimiento` en `index.html`.
+- **Enlaces por código:** Movimientos ↔ Bodega y Asignaciones ↔ Catálogo de Herramientas se
+  unen por el código al inicio del texto (`"CAB-V008 · Descripción"`), sin distinguir
+  mayúsculas.
+- **Fechas por defecto con `hoyISO()`** (fecha local); no usar `valueAsDate = new Date()`,
+  que usa UTC y en México muestra el día siguiente después de las 6 pm.
 - **Toda la base en un solo documento Firestore:** simple y suficiente para el volumen
   actual (cientos de registros). Last-write-wins.
 - **Tailwind/Font Awesome por CDN:** requieren internet; en el navegador del usuario
